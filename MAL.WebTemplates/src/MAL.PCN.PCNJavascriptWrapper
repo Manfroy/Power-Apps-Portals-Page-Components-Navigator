@@ -1,0 +1,184 @@
+{% fetchxml webRolesFetch %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+  <entity name="adx_webrole">
+    <order attribute="createdon" descending="false" />
+    <filter type="and">
+      <condition attribute="adx_anonymoususersrole" operator="eq" value="0" />
+      <condition attribute="adx_authenticatedusersrole" operator="eq" value="0" />
+    </filter>
+  </entity>
+</fetch>
+{% endfetchxml %}
+
+{% assign webRoles = webRolesFetch.results.entities %}
+
+{% fetchxml adminContactFetch %}
+<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="true">
+  <entity name="contact">
+    <filter type="and">
+      <condition attribute="contactid" operator="eq" value="{{user.id}}" />
+    </filter>
+    <link-entity name="adx_webrole_contact" from="contactid" to="contactid" visible="false" intersect="true">
+      <link-entity name="adx_webrole" from="adx_webroleid" to="adx_webroleid" alias="ai">
+        <filter type="and">
+          <condition attribute="adx_webroleid" operator="eq" value="{{webRoles[0].id}}" />
+        </filter>
+      </link-entity>
+    </link-entity>
+  </entity>
+</fetch>
+{% endfetchxml %}
+
+{% assign adminContact = adminContactFetch.results.entities %}
+
+{% if adminContact.size > 0 %}
+    <div class="container">
+      <div class="modal fade" id="MAL-PCN-Modal" role="dialog">
+        <div class="modal-dialog" style="width: 700px">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">&times;</button>
+              <h4 class="modal-title">Page Components Navigator</h4>
+            </div>
+            <div id="MAL-PCN-Modal-Body" class="modal-body">
+              <div id="malPcnComponentsTree" class="treeview">Loading...</div> 
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+          </div>      
+        </div>
+      </div>  
+    </div>
+
+    <script>
+      // Once admin bar is rendered, add PCN Button
+      let waitForAdminBar = setInterval(function () {
+        let adminBar = document.querySelectorAll('.yui-skin-sam .bd')[0];
+        if (adminBar) {
+          let pcnButtonDiv = document.createElement('div');
+          pcnButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module');
+          pcnButtonDiv.innerHTML =       
+              `<span id="malOpenPCN" class="yui-button yui-push-button">
+                <span class="first-child">
+                  <button id="malBtnPCN" style="width: 100%; text-align: left" type="button" data-toggle="modal" data-target="#MAL-PCN-Modal">PCN</button>
+                </span>
+              </span>`;
+          adminBar.append(pcnButtonDiv);
+          clearInterval(waitForAdminBar);
+        }
+      }, 10);
+
+      // Make sure that all links open in new tabs. Tree refreshes with any action
+      $('#MAL-PCN-Modal-Body').on('DOMSubtreeModified', '#malPcnComponentsTree', function(){
+        $('#MAL-PCN-Modal-Body #malPcnComponentsTree a[href!="#"]').attr('target', '_blank');
+      });
+
+      // Treeview script does not offer option to make href targets blank so doing it on mouseover
+      $('#MAL-PCN-Modal-Body #malPcnComponentsTree a').mouseover(function () {
+        if ($(this).attr('target') != '_blank' && $(this).attr('href') != '#'){
+          $(this).attr('target', '_blank');
+        }
+      });
+
+      // Add shortcut to open PCN with Ctrl + Space
+      document.onkeyup = function(e) {
+        if (e.ctrlKey && e.which == 32) {
+          document.getElementById("malBtnPCN").click();
+        } 
+      };
+
+      // Get GUID of Web Form being used on the Page record if any
+      if ("{{page.adx_webform.id}}") {
+        sessionStorage.setItem("MAL.PCN.page_adx_webform_id", "{{page.adx_webform.id}}");
+      } else {
+        sessionStorage.removeItem("MAL.PCN.page_adx_webform_id");
+      }
+
+      // Get GUID of Entity Form being used on the Page record if any
+      if ("{{page.adx_entityform.id}}") {
+        sessionStorage.setItem("MAL.PCN.page_adx_entityform_id", "{{page.adx_entityform.id}}");
+      } else {
+        sessionStorage.removeItem("MAL.PCN.page_adx_entityform_id");
+      }
+
+      // Get GUID of Entity list being used on the Page record if any
+      if ("{{page.adx_entitylist.id}}") {
+        sessionStorage.setItem("MAL.PCN.page_adx_entitylist_id", "{{page.adx_entitylist.id}}");
+      } else {
+        sessionStorage.removeItem("MAL.PCN.page_adx_entitylist_id");
+      }
+
+      // Get GUID of current web form step on the page if any
+      if ("{{request.params.stepid}}") {
+        sessionStorage.setItem("MAL.PCN.request_params_stepid", "{{request.params.stepid}}");
+      } else {
+        sessionStorage.removeItem("MAL.PCN.request_params_stepid");
+      }
+
+      // Get the GUID of the current web page
+      sessionStorage.setItem("MAL.PCN.page_adx_webpageid", "{{page.adx_webpageid}}");
+
+      // Get the api endpoint url
+      sessionStorage.setItem("MAL.PCN.GetPageComponentsData", "{{ sitemarkers["MAL.PCN.GetPageComponentsData"].url }}");
+
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-treeview/1.2.0/bootstrap-treeview.min.js"></script>
+    <script id="malPcnJavascriptWrapperScript">
+      {% include 'MAL.PCN.PCNJavascript' %}
+
+      /**
+       * Renders the created tree of components
+       */
+      async function renderTree(){
+        try {
+          let componentsTree = await PCNUtils.createComponentsTree();          
+          $('#malPcnComponentsTree').treeview({
+            data: componentsTree,
+            enableLinks: true,
+            levels: 20,
+            showTags: true
+          });
+        } catch (err) {
+          let customError = new Error(`${err.message} at function renderTree`);
+          customError.name = err.name;          
+          $('#malPcnComponentsTree').html(`
+            <div class="alert alert-danger">
+              <p>The tree of components failed to render due to the following error: </p> 
+              </br>
+              <p>Type: ${customError.name}</p>
+              <p>Description:</p>
+              <pre>${customError.message.replace(/ at /g, "\nat ")}</pre>
+            </div>          
+          `);
+        }
+      }
+
+      renderTree();      
+    </script>
+
+    <style>
+      #MAL-PCN-Modal-Body .treeview .list-group-item {
+        cursor:pointer
+      }
+      #MAL-PCN-Modal-Body .treeview .badge {
+        padding: 7px 7px !important;
+        margin-top: -3px !important;
+        border-radius: 5px !important;
+      }
+      #MAL-PCN-Modal-Body .treeview span.indent {
+        margin-left:10px;
+        margin-right:10px
+      }
+      #MAL-PCN-Modal-Body .treeview span.icon {
+        width:12px;
+        margin-right:5px
+      }
+      #MAL-PCN-Modal-Body .treeview .node-disabled {
+        color:silver;
+        cursor:not-allowed
+      }
+    </style>
+
+{% endif %}

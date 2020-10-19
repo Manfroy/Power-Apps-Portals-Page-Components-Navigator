@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "noEmitOnError": true,
+    "removeComments": false,
+    "sourceMap": true,
+    "target": "es5",
+    "outDir": "mal_/scripts/js",
+    "rootDir": "mal_/scripts/ts",
+    "lib": ["DOM", "es2016"]
+  }
+}
