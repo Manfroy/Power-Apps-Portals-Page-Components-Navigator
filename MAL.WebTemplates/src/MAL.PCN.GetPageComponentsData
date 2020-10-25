@@ -375,7 +375,7 @@
                                                     {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_attributelogicalname %}
                                             {% endcase %}
                                             {
-                                                "text":"{{currentWebFormStepMetadataName}})", 
+                                                "text":"{{currentWebFormStepMetadataName}}", 
                                                 "id":"{{currentWebFormStepMetadata.id}}", 
                                                 "componentType":"wfm", 
                                                 "state": {"expanded": true}, 
