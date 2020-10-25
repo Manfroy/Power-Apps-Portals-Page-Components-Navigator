@@ -1,18 +1,25 @@
 # Power Apps Portals Page Components Navigator
 
-A tool that allows to see a hierarchical tree of components being used on a portal page and navigate directly to their records on a model driven app. The hierarchical tree is created using the [Bootstrap Tree View solution](https://github.com/jonmiles/bootstrap-treeview)
+A tool that allows to see a hierarchical tree of components being used on a portal page and navigate directly to their records on a model driven app.
+
+![Power Apps Portals Page Components Navigator](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/blob/main/Screenshot/Trees.png)
+
+## Open Source Projects Utilized
+
+**Bootstrap Tree View** by Jonathan Miles  
+https://github.com/jonmiles/bootstrap-treeview  
 
 ## Getting Started
 
 ### Setup
 
-[Download](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/releases/download/v1.0.0.0/PageComponentsNavigator_1_0_0_0_managed.zip) the Page Components Navigator solution and install it.
+[Download](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/releases/download/v1.1.0.0/PageComponentsNavigator_1_1_0_0_managed.zip) the Page Components Navigator solution and install it.
 
-Once the solution is installed, navigate to the portals website record for which you want to set up the Page Components Navigator and click on the "Enable PCN" button from the ribbon. Doing this will result on some [data modifications](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-modifications) and some [data additions](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-additions) so please read what those modifications are before enabling the functionality on the website.
+Once the solution is installed, navigate to the portal's website record for which you want to set up the Page Components Navigator and click on the "Enable PCN" button from the ribbon. Doing this will result on some [data modifications](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-modifications) and some [data additions](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-additions) so please read what those modifications are before enabling the functionality on the website.
 
 Once enabled, clear the portal cache and reload/open a page. A PCN button will appear on the portal admin control that shows on the top right of the screen if the portal user you are currently logged in with has the OOB Administrators Web Role.
 
-Note: The Model Driven App used to navigate to the website record to enable the functionality will be the one on which records will open once clicked upon from the portal.
+**Note**: The Model Driven App used to navigate to the website record to enable the functionality will be the one on which records will open once clicked upon on the tree component from the portal.
 
 ### Usage
 
@@ -44,7 +51,7 @@ Clicking on a given commponent on the tree will open its record on the model dri
 
   - Web templates that extend another web template. These web templates can't have anything outside a liquid block tag. They are being rendered on the tree structure by going up the extending chain that starts with the page Main web template if it extends another web template.
 
-- A new field named "Filtered Source" that will contain a stripped-down version of the source codes containing only the relevant lines of code required to create the tree of components is added to the following entities and populated accordingly:
+- A new field named "Filtered Source" that contains a stripped-down version of the source codes containing only the relevant lines of code required to create the tree of components is added to the following entities and populated accordingly. This field value is computed synchronously every time the source changes.
 
   - Web Pages (combined stripped-down source from page copy and javascript section)
   - Entity Forms (combined stripped-down source from javascript section and instructions field)
@@ -60,9 +67,9 @@ Clicking on a given commponent on the tree will open its record on the model dri
 {% endif %}
 ```
 
-Note: Switching the "Enabled for PCN" field to "Yes"/"No" will add/remove the HTML comment from the end of the web template source, therefore showing/not showing the web template on the tree of components.
+**Note**: Switching the "Enabled for PCN" field to "Yes"/"No" will add/remove the HTML comment from the end of the web template source, therefore showing/not showing the web template on the tree of components.
 
-Note: The web templates where the field "Enabled for PCN" are not set to "Yes" are intentionally left blank for the user to decide if it should or not be added to the tree of components based on the explanation provided above.
+**Note**: The web templates where the field "Enabled for PCN" are not set to "Yes" are intentionally left blank for the user to decide if it should or not be added to the tree of components based on the explanation provided above.
 
 ## Data Additions
 
@@ -87,7 +94,21 @@ Note: The web templates where the field "Enabled for PCN" are not set to "Yes" a
 - One root web page with its content web page
   - The web page is used in conjunction with the page template and one of the three web templates to create and API endpoint that provides the data needed to create the tree of components. The Site Marker that is created points to this web page. This allows to easily change the parent page to a different page without breaking any functionality. By default the parent page is set to the home page of the website.
 
-Note: The name of all created records starts with "MAL.PCN."
+**Note**: The name of all created records starts with "MAL.PCN."
+
+## Uninstalling
+
+Navigate to the Website record for which PCN was installed and click the Uninstall PCN button from the ribbon.
+
+Uninstalling the Page Components Navigator will delete all the records that are added after installing it. It will also remove the HTML comment containing the web template id that gets added at the end of the source of web templates.
+
+## Security
+
+The PCN functionality is only available for portal users whose contact record has the OOB portal administrator web role
+
+## Performance
+
+The impact on page loading time is minimal since the javascript used to render the tree of components is loaded at the very end of the footer web template source and executed asynchronously.
 
 ## Known Limitations
 
@@ -99,7 +120,7 @@ Entity Lists that are referenced by name or directly by GUID on web templates wo
 {% entitylist id:936DA01F-9ABD-4d9d-80C7-02AF85C822A8 %}
 ```
 
-For them to show on the tree of components, they have to be refrenced in one of the following ways:
+For them to show on the tree of components, they have to be referenced in one of the following ways:
 
 ```
 {% entitylist id:page.adx_entitylist.id %}
