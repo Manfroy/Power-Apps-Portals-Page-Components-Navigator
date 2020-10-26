@@ -13,13 +13,13 @@ https://github.com/jonmiles/bootstrap-treeview
 
 ### Setup
 
-![Power Apps Portals Page Components Navigator](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/blob/main/Screenshot/SetupDemo.gif)
-
 [Download](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/releases/download/v1.1.0.0/PageComponentsNavigator_1_1_0_0_managed.zip) the Page Components Navigator solution and install it.
 
 Once the solution is installed, navigate to the portal's website record for which you want to set up the Page Components Navigator and click on the "Enable PCN" button from the ribbon. Doing this will result on some [data modifications](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-modifications) and some [data additions](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-additions) so please read what those modifications are before enabling the functionality on the website.
 
 Once enabled, clear the portal cache and reload/open a page. A PCN button will appear on the portal admin control that shows on the top right of the screen if the portal user you are currently logged in with has the OOB Administrators Web Role.
+
+![Power Apps Portals Page Components Navigator](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/blob/main/Screenshot/SetupDemo.gif)
 
 **Note**: The Model Driven App used to navigate to the website record to enable the functionality will be the one on which records will open once clicked upon on the tree component from the portal.
 
