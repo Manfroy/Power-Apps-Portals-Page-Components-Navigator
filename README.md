@@ -114,6 +114,7 @@ The impact on page loading time is minimal since the javascript used to render t
 
 ## Known Limitations
 
+### Entity Lists
 Entity Lists that are referenced by name or directly by GUID on web templates won't show up on the tree of components. The code snippet below shows examples of this:
 
 ```
@@ -129,3 +130,27 @@ For them to show on the tree of components, they have to be referenced in one of
 {% entitylist key:page.adx_entitylist.id %}
 {% include entity_list key: page.adx_entitylist.id %}
 ```
+
+### Web Templates
+If you have a web template with just one line of code being used inline by other web templates, then you might need to disable PCN for this web template. 
+
+Let's say you have a web template named "PCN Github Page URL" whose source is as follows:
+
+```
+https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator
+```
+
+Once PCN is enabled, its source will be similar to this:
+```
+https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator
+<!--MAL.PCN.WebTemplateId=289517a7-5f34-4cde-b2dc-66b016c4c359-->
+```
+
+Therefore, your code would break if you then had another web template that was using the web template "PCN GitHub Page URL" in the following way:
+
+```
+function goToPCNGithubPage() {
+  window.location.href = {% include "PC Github Page URL" %};
+}
+```
+
