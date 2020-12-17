@@ -52,7 +52,7 @@
     </div>
 
     <script>
-      // Once admin bar is rendered, add PCN Button
+      // Once admin bar is rendered, add PCN and Metadata Buttons
       let waitForAdminBar = setInterval(function () {
         let adminBar = document.querySelectorAll('.yui-skin-sam .bd')[0];
         if (adminBar) {
@@ -61,10 +61,36 @@
           pcnButtonDiv.innerHTML =       
               `<span id="malOpenPCN" class="yui-button yui-push-button">
                 <span class="first-child">
-                  <button id="malBtnPCN" style="width: 100%; text-align: left" type="button" data-toggle="modal" data-target="#MAL-PCN-Modal">PCN</button>
+                  <button id="malBtnPCN" style="width: 100%; text-align: left" type="button" data-toggle="modal" data-target="#MAL-PCN-Modal">
+                    PCN
+                  </button>
                 </span>
               </span>`;
           adminBar.append(pcnButtonDiv);
+
+          let mdtaButtonDiv = document.createElement('div');
+          mdtaButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module hidden');
+          mdtaButtonDiv.innerHTML =       
+              `<span id="malOpenMdta" class="yui-button yui-push-button">
+                <span class="first-child">
+                  <button id="malBtnMdta" style="width: 100%; text-align: left" type="button">
+                    Mdta
+                  </button>
+                </span>
+              </span>`;    
+
+          // Open Mdta URL on click of Mdta button
+          adminBar.append(mdtaButtonDiv);
+          $('#malBtnMdta').click(function() {
+            window.open($(this).data('url'));
+            $('#malOpenMdta').parent().addClass('hidden');
+          });
+
+          // Clicking anywhere else will loose the link to the field
+          $('#malOpenMdta').mouseleave(function() {
+            $(this).data('metadataId', '');
+          });
+
           clearInterval(waitForAdminBar);
         }
       }, 10);
@@ -131,19 +157,98 @@
       {% include 'MAL.PCN.PCNJavascript' %}
 
       /**
-       * Renders the created tree of components
+       * Sets up direct metadata navigation button on admin control
+       * @param inputControl the input control for which the Mdta button will show
+       * @param allMetadata metadata returned from api request
        */
-      async function renderTree(){
+      function setUpMdtaButton(inputControl, allMetadata) {
+        let inputId = $(inputControl).attr('id');
+
+        // If control is a lookup
+        if ($(inputControl).parent().hasClass('input-group')){
+          inputId = $(inputControl).next().next().attr('id');
+        }
+
+        // Set up Mdta button and div when an input with metadata comes into focus
+        $(inputControl).focus(function () {
+          
+          // Get field metadata from json payload. Account for option sets where id ends with _[item number]
+          const inputMetadata = allMetadata.filter(m => m.text.endsWith(inputId.replace(/_(\d+)/g,'')));
+          
+          if (inputMetadata.length){
+            $('#malBtnMdta').data('url', inputMetadata[0].href);
+            $('#malOpenMdta').parent().removeClass('hidden');
+            $('#malOpenMdta').mouseenter(function() {
+              $(this).data('metadataId', inputId);
+            });
+          } 
+        });
+
+        // Hide Mdta button if focusing on another element with no metadata
+        $(inputControl).focusout(function () {
+          if ($('#malOpenMdta').data('metadataId') != inputId) {
+            $('#malOpenMdta').parent().addClass('hidden');
+          }
+        })
+      }
+
+      /**
+       * Sets up direct metadata navigation for each input control
+       * @param allMetadata metadata returned from api request
+       */
+      function setUpMetadataNavigation (allMetadata) {
+        
+        // Mdta functionality for controls on modal entity forms
+        document.querySelectorAll('iframe').forEach( function (iFrameElement) {
+          iFrameElement.onload = function () {  
+            let iFrameBody = this.contentWindow.document.body;
+
+            // Poll for iframe html repeatedly until the entity form control is rendered
+            var myInterval = setInterval(function () {
+
+              // Exit if there's not content at all on iframe
+              if ($(iFrameBody).html() == ""){
+                clearInterval(myInterval);
+              }
+
+              // Enter if Iframe is loading
+              if ($(iFrameBody).find('#EntityFormControl_EntityFormView').html()){
+
+                // Allow some time for all controls to load
+                setTimeout(function() {
+
+                  // Set up Mdta logic for each control on focus and focusout events
+                  $(iFrameBody).find('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata));        
+
+                }, 100);
+                clearInterval(myInterval);
+              }
+            }, 100);
+          };
+        })
+
+        // Set up Mdta functionality for controls on non-modal forms
+        $('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata));        
+      }
+
+
+      /**
+       * Setps up the created tree of components and the direct control metadata navigation
+       */
+      async function renderApp(){
         try {
-          let componentsTree = await PCNUtils.createComponentsTree();          
+          let data = await PCNUtils.getData();
+
+          setUpMetadataNavigation(data.allMetadata);
+
           $('#malPcnComponentsTree').treeview({
-            data: componentsTree,
+            data: PCNUtils.createComponentsTree(data),
             enableLinks: true,
             levels: 20,
             showTags: true
           });
         } catch (err) {
-          let customError = new Error(`${err.message} at function renderTree`);
+          let customError = new Error(`${err.message} at function renderApp`);
           customError.name = err.name;          
           $('#malPcnComponentsTree').html(`
             <div class="alert alert-danger">
@@ -157,7 +262,7 @@
         }
       }
 
-      renderTree();      
+      renderApp();   
     </script>
 
     <style>

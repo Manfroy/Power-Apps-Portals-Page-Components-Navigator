@@ -12,7 +12,7 @@ class PCNUtils {
       if (parent) {
         [child.hasParent, child.ancestors] = [
           true,
-          [...new Set([...child.ancestors, ...parent.ancestors, parent.id])]
+          [...new Set([...child.ancestors, ...parent.ancestors, parent.id])],
         ];
       }
     } catch (err) {
@@ -34,12 +34,12 @@ class PCNUtils {
     parent: PageComponent
   ): boolean {
     try {
-      const childElementName = child.text.toLowerCase().replace(/ /g, '');
+      const childElementName = child.text.toLowerCase().replace(/ /g, "");
       const childElementId = child.id.toLowerCase();
       const [pageWebformId, pageEntityformId, pageEntitylistId] = [
-        sessionStorage.getItem('MAL.PCN.page_adx_webform_id'),
-        sessionStorage.getItem('MAL.PCN.page_adx_entityform_id'),
-        sessionStorage.getItem('MAL.PCN.page_adx_entitylist_id')
+        sessionStorage.getItem("MAL.PCN.page_adx_webform_id"),
+        sessionStorage.getItem("MAL.PCN.page_adx_entityform_id"),
+        sessionStorage.getItem("MAL.PCN.page_adx_entitylist_id"),
       ];
 
       return [
@@ -48,11 +48,11 @@ class PCNUtils {
         `%entityformname:${childElementName}`,
         `%webformid:${childElementId}`,
         `%entityformid:${childElementId}`,
-        '%webformid:page.adx_webform.id',
-        '%entityformid:page.adx_entityform.id',
-        '%entitylistid:page.adx_entitylist.id',
-        '%entitylistkey:page.adx_entitylist.id',
-        '%includeentity_listkey:page.adx_entitylist.id'
+        "%webformid:page.adx_webform.id",
+        "%entityformid:page.adx_entityform.id",
+        "%entitylistid:page.adx_entitylist.id",
+        "%entitylistkey:page.adx_entitylist.id",
+        "%includeentity_listkey:page.adx_entitylist.id",
       ].some(
         (v, i) =>
           parent.source.includes(v) &&
@@ -219,7 +219,7 @@ class PCNUtils {
       allWebTemplatesWithBlocks
         .filter((wt) =>
           extendingTemplate.source.includes(
-            `%extends${wt.text.toLowerCase().replace(/ /g, '')}`
+            `%extends${wt.text.toLowerCase().replace(/ /g, "")}`
           )
         )
         .forEach((wt) => {
@@ -251,10 +251,10 @@ class PCNUtils {
       const modalEntityFormsIDs: Array<string> = [];
 
       document
-        .querySelectorAll('.entity-grid.subgrid, .entity-grid.entitylist')
+        .querySelectorAll(".entity-grid.subgrid, .entity-grid.entitylist")
         .forEach((val) => {
           let attributeWithFormIds =
-            val.getAttribute('data-view-layouts') ?? '';
+            val.getAttribute("data-view-layouts") ?? "";
           try {
             // Entity lists have this attribute encoded so trying the decoding here in case of entity list
             attributeWithFormIds = atob(attributeWithFormIds);
@@ -265,7 +265,7 @@ class PCNUtils {
           let ids;
           const regex = RegExp(
             '"EntityForm":{"Id":"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
-            'g'
+            "g"
           );
           while ((ids = regex.exec(attributeWithFormIds)) !== null) {
             modalEntityFormsIDs.push(ids[0].substr(20, 36));
@@ -287,7 +287,7 @@ class PCNUtils {
    */
   static retrieveAllRegularEntityForms(): Array<string> {
     try {
-      const eForms = document.querySelectorAll('[id^=EntityFormControl]');
+      const eForms = document.querySelectorAll("[id^=EntityFormControl]");
       return [...new Set(Array.from(eForms).map((ef) => ef.id.substr(18, 32)))];
     } catch (err) {
       let customError = new Error(
@@ -310,7 +310,7 @@ class PCNUtils {
       );
       let curNode;
       while ((curNode = iterator.nextNode())) {
-        if (curNode.nodeValue?.includes('MAL.PCN.WebTemplateId=')) {
+        if (curNode.nodeValue?.includes("MAL.PCN.WebTemplateId=")) {
           webTemplateGUIDS.push(
             curNode.nodeValue.match(
               /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g
@@ -334,11 +334,11 @@ class PCNUtils {
   static retrieveWebTemplateGUIDsInScripts(): Array<string | undefined> {
     try {
       let webTemplateGUIDS: Array<string | undefined> = [];
-      Array.from(document.querySelectorAll('script'))
+      Array.from(document.querySelectorAll("script"))
         .filter(
           (s) =>
-            s.id != 'malPcnJavascriptWrapperScript' &&
-            s.innerHTML.includes('MAL.PCN.WebTemplateId=')
+            s.id != "malPcnJavascriptWrapperScript" &&
+            s.innerHTML.includes("MAL.PCN.WebTemplateId=")
         )
         .forEach((s) => {
           webTemplateGUIDS = webTemplateGUIDS.concat(
@@ -346,7 +346,7 @@ class PCNUtils {
               .match(
                 /MAL.PCN.WebTemplateId=[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g
               )
-              ?.map((v: string) => v.replace('MAL.PCN.WebTemplateId=', ''))
+              ?.map((v: string) => v.replace("MAL.PCN.WebTemplateId=", ""))
           );
         });
 
@@ -367,7 +367,7 @@ class PCNUtils {
     try {
       const webTemplates = [
         ...this.retrieveGuidsOfWebTemplatesInComments(),
-        ...this.retrieveWebTemplateGUIDsInScripts()
+        ...this.retrieveWebTemplateGUIDsInScripts(),
       ];
       return [...new Set(webTemplates)];
     } catch (err) {
@@ -384,7 +384,7 @@ class PCNUtils {
    */
   static retrieveWebForms(): Array<string> {
     try {
-      const wForms = document.querySelectorAll('[id^=WebFormControl]');
+      const wForms = document.querySelectorAll("[id^=WebFormControl]");
       return [...new Set(Array.from(wForms).map((wf) => wf.id.substr(15, 32)))];
     } catch (err) {
       let customError = new Error(
@@ -401,19 +401,21 @@ class PCNUtils {
   static createEndPointRequestURL(): string {
     try {
       const queryStringParameters = [
-        `wp=${sessionStorage.getItem('MAL.PCN.page_adx_webpageid')}`,
-        `pcnwt=${this.retrieveAllWebTemplates().join('_')}`,
-        `pcnef=${this.retrieveAllRegularEntityForms().join('_')}`,
-        `pcnmef=${this.retrieveAllModalEntityForms().join('_')}`,
-        `pcnel=${sessionStorage.getItem('MAL.PCN.page_adx_entitylist_id')}`,
-        `pcnwf=${this.retrieveWebForms().join('_')}`,
-        `pcnwfstepid=${sessionStorage.getItem('MAL.PCN.request_params_stepid')}`
+        `wp=${sessionStorage.getItem("MAL.PCN.page_adx_webpageid")}`,
+        `pcnwt=${this.retrieveAllWebTemplates().join("_")}`,
+        `pcnef=${this.retrieveAllRegularEntityForms().join("_")}`,
+        `pcnmef=${this.retrieveAllModalEntityForms().join("_")}`,
+        `pcnel=${sessionStorage.getItem("MAL.PCN.page_adx_entitylist_id")}`,
+        `pcnwf=${this.retrieveWebForms().join("_")}`,
+        `pcnwfstepid=${sessionStorage.getItem(
+          "MAL.PCN.request_params_stepid"
+        )}`,
       ];
       const queryString = queryStringParameters
-        .filter((qsp) => !qsp.endsWith('='))
-        .join('&');
+        .filter((qsp) => !qsp.endsWith("="))
+        .join("&");
       const endPointUrl = sessionStorage.getItem(
-        'MAL.PCN.GetPageComponentsData'
+        "MAL.PCN.GetPageComponentsData"
       );
 
       return `${endPointUrl}?${queryString}`;
@@ -457,8 +459,8 @@ class PCNUtils {
         webForms[0].nodes
           .filter((wfstep: WebFormStep) => wfstep.order == 100)
           .forEach((wfstep: WebFormStep) => {
-            wfstep.text += ' - NOT LINKED';
-            wfstep.color = 'red';
+            wfstep.text += " - NOT LINKED";
+            wfstep.color = "red";
           });
       }
     } catch (err) {
@@ -485,7 +487,7 @@ class PCNUtils {
     try {
       return [
         this.getNestedChildren(headerWebTemplate, components),
-        this.getNestedChildren(footerWebTemplate, components)
+        this.getNestedChildren(footerWebTemplate, components),
       ];
     } catch (err) {
       let customError = new Error(
@@ -509,7 +511,7 @@ class PCNUtils {
   ): PageComponent {
     try {
       const mainTree = this.getNestedChildren(mainWebTemplate, components);
-      if (mainWebTemplate.source.includes('%extends')) {
+      if (mainWebTemplate.source.includes("%extends")) {
         this.getTreeOfWebTemplatesBeingExtendedByMainWebTemplate(
           mainTree,
           webTemplatesWithBlocks,
@@ -538,7 +540,7 @@ class PCNUtils {
     try {
       const componentsWithParent: Array<string> = [
         ...allSourceComponents,
-        ...webTemplatesWithBlocks
+        ...webTemplatesWithBlocks,
       ]
         .filter((c) => c.hasParent)
         .map((c) => c.id);
@@ -615,7 +617,7 @@ class PCNUtils {
   /**
    * Returns the full tree of components on a page
    */
-  static async createComponentsTree() {
+  static createComponentsTree(jsonData: any) {
     try {
       const {
         webTemplates,
@@ -627,7 +629,7 @@ class PCNUtils {
         entityLists = [],
         webForms = [],
         webTemplatesWithBlocks = [],
-        mainWebPage
+        mainWebPage,
       }: {
         webTemplates: Array<PageComponent>;
         mainWebTemplate: PageComponent;
@@ -639,12 +641,12 @@ class PCNUtils {
         webForms: Array<PageComponent>;
         webTemplatesWithBlocks: Array<PageComponent>;
         mainWebPage: PageComponent;
-      } = await this.getData();
+      } = jsonData;
 
       const allSourceComponents = [
         ...webTemplates,
         ...regularEntityForms,
-        ...entityLists
+        ...entityLists,
       ];
 
       this.createWebFormTree(webForms, allSourceComponents, webTemplates);
@@ -668,20 +670,20 @@ class PCNUtils {
       );
 
       const modalEntityFormsTree = {
-        text: 'Modal Entity Forms',
-        backColor: 'lightgray',
+        text: "Modal Entity Forms",
+        backColor: "lightgray",
         state: { expanded: true },
-        nodes: modalEntityForms
+        nodes: modalEntityForms,
       };
 
       const orphanOrDynamicallyInserted = {
-        text: 'Components with unresolved parents or dynamically referenced',
-        backColor: 'lightgray',
+        text: "Components with unresolved parents or dynamically referenced",
+        backColor: "lightgray",
         state: { expanded: true },
         nodes: this.createTreeOfRemainingComponents(
           allSourceComponents,
           webTemplatesWithBlocks
-        )
+        ),
       };
 
       const fullTree = [
@@ -689,7 +691,7 @@ class PCNUtils {
         webPageTree,
         orphanOrDynamicallyInserted,
         modalEntityFormsTree,
-        footerTree
+        footerTree,
       ];
 
       if (!orphanOrDynamicallyInserted.nodes.length) {
