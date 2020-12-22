@@ -290,6 +290,18 @@
     {% assign entityListsResults = EntityListsFetch.results.entities %}
 {% endif %}  
 
+{% if params.pcnmef or params.pcnef or params.pcnmef or params.pcnwf %}    
+    {% if params.pcnmef %}
+        {% assign allMetadata = allMetadata | concat: modalEntiyFormMetadataResults %}
+    {% endif %}
+    {% if params.pcnef %}
+        {% assign allMetadata = allMetadata | concat: entiyFormMetadataResults %}
+    {% endif %}
+    {% if params.pcnwf %}
+        {% assign allMetadata = allMetadata | concat: webFormStepsMetadata %}
+    {% endif %}
+{% endif %}
+
 
 {
     {% if webTemplatesWithBlocksResults.size > 0 %}
@@ -625,4 +637,26 @@
         "color": "black", 
         "source": "{{mainWebPage.mal_filteredsource}}"
     }
+    {% if allMetadata %}
+    ,
+    "allMetadata" : [
+        {% for currentMetadata in allMetadata %}
+            {% assign currentMetadataName = currentMetadata.adx_attributelogicalname %}
+            {
+                "text": "{{currentMetadataName}}", 
+                "id": "{{currentMetadata.id}}", 
+                {% if currentMetadata.adx_webformstep %}
+                    "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentMetadata.id}}", 
+                    "parentType":"wfs",
+                    "parentId": "{{currentMetadata.adx_webformstep.id}}"
+                {% else %}
+                    "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentMetadata.id}}", 
+                    "parentType":"ef",
+                    "parentId": "{{currentMetadata.adx_entityform.id}}"
+                {% endif %}
+            }
+            {% if forloop.rindex0 > 0 %},{% endif %}
+        {% endfor %}
+    ]
+    {% endif %}
 }
