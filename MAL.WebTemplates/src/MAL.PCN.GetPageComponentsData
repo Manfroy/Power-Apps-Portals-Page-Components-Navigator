@@ -374,7 +374,8 @@
                                     "text": "Metadata", 
                                     "state": {"expanded": false}, 
                                     "nodes":[
-                                        {% for currentWebFormStepMetadata in webFormStepsMetadata %}
+                                        {% assign fileteredwebFormStepsMetadata = webFormStepsMetadata | where: 'adx_webformstep.id', currentWebFormStep.id %}
+                                        {% for currentWebFormStepMetadata in fileteredwebFormStepsMetadata %}
                                             {% assign currentWebFormStepMetadataName = "" %}
                                             {% case currentWebFormStepMetadata.adx_type.label %}
                                                 {% when 'Subgrid' %}
