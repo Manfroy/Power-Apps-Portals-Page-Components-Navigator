@@ -649,7 +649,7 @@
                 {% if currentMetadata.adx_webformstep %}
                     "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentMetadata.id}}", 
                     "parentType":"wfs",
-                    "parentId": "{{currentMetadata.adx_webformstep.id}}"
+                    "parentId": "{{currentMetadata['ac.adx_webformid']}}"
                 {% else %}
                     "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentMetadata.id}}", 
                     "parentType":"ef",
