@@ -318,6 +318,27 @@ class PCNUtils {
           );
         }
       }
+
+      document.querySelectorAll("iframe").forEach((iFrameElement) => {
+        let IframeDocument = iFrameElement.contentWindow?.document;
+        if (IframeDocument) {
+          const iframeIterator = IframeDocument.createNodeIterator(
+            IframeDocument.body,
+            NodeFilter.SHOW_COMMENT
+          );
+          let curNode;
+          while ((curNode = iframeIterator.nextNode())) {
+            if (curNode.nodeValue?.includes("MAL.PCN.WebTemplateId=")) {
+              webTemplateGUIDS.push(
+                curNode.nodeValue.match(
+                  /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g
+                )?.[0]
+              );
+            }
+          }
+        }
+      });
+
       return webTemplateGUIDS;
     } catch (err) {
       let customError = new Error(
@@ -349,6 +370,27 @@ class PCNUtils {
               ?.map((v: string) => v.replace("MAL.PCN.WebTemplateId=", ""))
           );
         });
+
+      document.querySelectorAll("iframe").forEach((iFrameElement) => {
+        let IframeDocument = iFrameElement.contentWindow?.document;
+        if (IframeDocument) {
+          Array.from(IframeDocument.querySelectorAll("script"))
+            .filter(
+              (s) =>
+                s.id != "malPcnJavascriptWrapperScript" &&
+                s.innerHTML.includes("MAL.PCN.WebTemplateId=")
+            )
+            .forEach((s) => {
+              webTemplateGUIDS = webTemplateGUIDS.concat(
+                s.innerHTML
+                  .match(
+                    /MAL.PCN.WebTemplateId=[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g
+                  )
+                  ?.map((v: string) => v.replace("MAL.PCN.WebTemplateId=", ""))
+              );
+            });
+        }
+      });
 
       return webTemplateGUIDS;
     } catch (err) {
@@ -615,6 +657,28 @@ class PCNUtils {
   }
 
   /**
+   * Creates trees for modal entity forms
+   * @param modalEntityForms All modal entity forms on the page
+   * @param allSourceComponents Array of all components
+   */
+  static createModalEntityFormsTrees(
+    modalEntityForms: PageComponent[],
+    allSourceComponents: PageComponent[]
+  ) {
+    try {
+      modalEntityForms.forEach((mef) =>
+        this.getNestedChildren(mef, allSourceComponents)
+      );
+    } catch (err) {
+      let customError = new Error(
+        `${err.message} at function createModalEntityFormsTrees`
+      );
+      customError.name = err.name;
+      throw customError;
+    }
+  }
+
+  /**
    * Returns the full tree of components on a page
    */
   static createComponentsTree(jsonData: any) {
@@ -669,8 +733,11 @@ class PCNUtils {
         allSourceComponents
       );
 
+      this.createModalEntityFormsTrees(modalEntityForms, allSourceComponents);
+
       const modalEntityFormsTree = {
-        text: "Modal Entity Forms",
+        text:
+          "Modal Entity Forms (Children components will only show once forms have been opened)",
         backColor: "lightgray",
         state: { expanded: true },
         nodes: modalEntityForms,

@@ -247,6 +247,19 @@ class PCNUtils {
                     webTemplateGUIDS.push((_b = curNode.nodeValue.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g)) === null || _b === void 0 ? void 0 : _b[0]);
                 }
             }
+            document.querySelectorAll("iframe").forEach((iFrameElement) => {
+                var _a, _b, _c;
+                let IframeDocument = (_a = iFrameElement.contentWindow) === null || _a === void 0 ? void 0 : _a.document;
+                if (IframeDocument) {
+                    const iframeIterator = IframeDocument.createNodeIterator(IframeDocument.body, NodeFilter.SHOW_COMMENT);
+                    let curNode;
+                    while ((curNode = iframeIterator.nextNode())) {
+                        if ((_b = curNode.nodeValue) === null || _b === void 0 ? void 0 : _b.includes("MAL.PCN.WebTemplateId=")) {
+                            webTemplateGUIDS.push((_c = curNode.nodeValue.match(/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g)) === null || _c === void 0 ? void 0 : _c[0]);
+                        }
+                    }
+                }
+            });
             return webTemplateGUIDS;
         }
         catch (err) {
@@ -268,6 +281,20 @@ class PCNUtils {
                 var _a;
                 webTemplateGUIDS = webTemplateGUIDS.concat((_a = s.innerHTML
                     .match(/MAL.PCN.WebTemplateId=[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g)) === null || _a === void 0 ? void 0 : _a.map((v) => v.replace("MAL.PCN.WebTemplateId=", "")));
+            });
+            document.querySelectorAll("iframe").forEach((iFrameElement) => {
+                var _a;
+                let IframeDocument = (_a = iFrameElement.contentWindow) === null || _a === void 0 ? void 0 : _a.document;
+                if (IframeDocument) {
+                    Array.from(IframeDocument.querySelectorAll("script"))
+                        .filter((s) => s.id != "malPcnJavascriptWrapperScript" &&
+                        s.innerHTML.includes("MAL.PCN.WebTemplateId="))
+                        .forEach((s) => {
+                        var _a;
+                        webTemplateGUIDS = webTemplateGUIDS.concat((_a = s.innerHTML
+                            .match(/MAL.PCN.WebTemplateId=[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g)) === null || _a === void 0 ? void 0 : _a.map((v) => v.replace("MAL.PCN.WebTemplateId=", "")));
+                    });
+                }
             });
             return webTemplateGUIDS;
         }
@@ -465,6 +492,21 @@ class PCNUtils {
         }
     }
     /**
+     * Creates trees for modal entity forms
+     * @param modalEntityForms All modal entity forms on the page
+     * @param allSourceComponents Array of all components
+     */
+    static createModalEntityFormsTrees(modalEntityForms, allSourceComponents) {
+        try {
+            modalEntityForms.forEach((mef) => this.getNestedChildren(mef, allSourceComponents));
+        }
+        catch (err) {
+            let customError = new Error(`${err.message} at function createModalEntityFormsTrees`);
+            customError.name = err.name;
+            throw customError;
+        }
+    }
+    /**
      * Returns the full tree of components on a page
      */
     static createComponentsTree(jsonData) {
@@ -479,8 +521,9 @@ class PCNUtils {
             const [headerTree, footerTree] = this.createHeaderAndFooterTrees(headerWebTemplate, footerWebTemplate, allSourceComponents);
             const mainWebTemplateTree = this.createMainWebTemplateTree(mainWebTemplate, webTemplatesWithBlocks, allSourceComponents);
             const webPageTree = this.createWebPageTree(mainWebPage, mainWebTemplateTree, allSourceComponents);
+            this.createModalEntityFormsTrees(modalEntityForms, allSourceComponents);
             const modalEntityFormsTree = {
-                text: "Modal Entity Forms",
+                text: "Modal Entity Forms (Children components will only show once forms have been opened)",
                 backColor: "lightgray",
                 state: { expanded: true },
                 nodes: modalEntityForms,
