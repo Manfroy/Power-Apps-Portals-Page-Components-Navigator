@@ -10,9 +10,30 @@
   <entity name="adx_webpage">
     <attribute name="adx_name" />
     <attribute name="mal_filteredsource" />
+    <attribute name="adx_pagetemplateid" />
+    <attribute name="adx_webform" />
+    <attribute name="adx_entityform" />
+    <attribute name="adx_entitylist" />
     <filter type="and">
       <condition attribute="adx_webpageid" operator="eq" value="{{params.wp}}" />
     </filter>
+    <link-entity name="adx_pagetemplate" from="adx_pagetemplateid" to="adx_pagetemplateid" link-type="outer" alias="ptalias">
+      <attribute name="adx_name" />
+      <attribute name="adx_pagetemplateid" />
+    </link-entity>
+    <link-entity name="adx_webform" from="adx_webformid" to="adx_webform" link-type="outer" alias="wfalias">
+      <attribute name="adx_name" />
+      <attribute name="adx_webformid" />
+    </link-entity>
+    <link-entity name="adx_entitylist" from="adx_entitylistid" to="adx_entitylist" link-type="outer" alias="elalias">
+      <attribute name="adx_name" />
+      <attribute name="adx_entitylistid" />
+    </link-entity>
+    <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="outer" alias="efalias">
+      <attribute name="adx_name" />
+      <attribute name="adx_entityformid" />
+      <attribute name="mal_filteredsource" />
+    </link-entity>
   </entity>
 </fetch>
 {%endfetchxml%}
@@ -36,7 +57,9 @@
 </fetch>
 {%endfetchxml%}
 
-{% assign mainWebTemplate = MainWebTemplateFetch.results.entities[0] %}
+{% if MainWebTemplateFetch.results.entities.size > 0 %}
+    {% assign mainWebTemplate = MainWebTemplateFetch.results.entities[0] %}
+{% endif %}
 
 {%fetchxml FooterWebTemplateFetch%}
 <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
@@ -79,7 +102,9 @@
         <attribute name="mal_filteredsource" />
         <filter type="and">
             <condition attribute="statecode" operator="eq" value="0" />
-            <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
+            {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
+            {% endif %}
             <condition attribute="adx_webtemplateid" operator="ne" value="{{headerWebTemplate.id}}" />
             <condition attribute="adx_webtemplateid" operator="ne" value="{{footerWebTemplate.id}}" />
             <filter type="or">
@@ -94,27 +119,30 @@
 
 {% assign webTemplatesResults = webTemplatesFetch.results.entities %}
 
-{% if mainWebTemplate.mal_filteredsource contains '%extends' %}
-    {%fetchxml webTemplatesWithBlocksFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_webtemplate">
-            <attribute name="adx_name" />
-            <attribute name="mal_filteredsource" />
-            <filter type="and">
-                <condition attribute="adx_source" operator="like" value="%endblock%" />
-                <condition attribute="statecode" operator="eq" value="0" />
-                <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
-                <condition attribute="adx_name" operator="ne" value="Get Page Components" />
-                <condition attribute="adx_name" operator="ne" value="Page Components Navigator v2" />
-            </filter>
-        </entity>
-    </fetch>
-    {%endfetchxml%} 
+{% if MainWebTemplateFetch.results.entities.size > 0 %}
+    {% if mainWebTemplate.mal_filteredsource contains '%extends' %}
+        {%fetchxml webTemplatesWithBlocksFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_webtemplate">
+                <attribute name="adx_name" />
+                <attribute name="mal_filteredsource" />
+                <filter type="and">
+                    <condition attribute="adx_source" operator="like" value="%endblock%" />
+                    <condition attribute="statecode" operator="eq" value="0" />
+                    <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
+                    <condition attribute="adx_name" operator="ne" value="Get Page Components" />
+                    <condition attribute="adx_name" operator="ne" value="Page Components Navigator v2" />
+                </filter>
+            </entity>
+        </fetch>
+        {%endfetchxml%} 
 
-    {% assign webTemplatesWithBlocksResults = webTemplatesWithBlocksFetch.results.entities %}
+        {% assign webTemplatesWithBlocksResults = webTemplatesWithBlocksFetch.results.entities %}
+    {% endif %}
 {% endif %}
 
-{% if params.pcnwf %}
+
+{% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
     {%fetchxml webFormStepsMetadataFetch%}
     <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
         <entity name="adx_webformmetadata">
@@ -141,7 +169,11 @@
                     <attribute name="adx_webformid" />
                     <attribute name="adx_startstep" />
                     <filter type="and">
+                    {% if MainWebTemplateFetch.results.entities.size > 0 %}
                         <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
+                    {% else %}
+                        <condition attribute="adx_webformid" operator="eq" value="{{mainWebPage['wfalias.adx_webformid']}}" />
+                    {% endif %}
                     </filter>
                 </link-entity>
             </link-entity>
@@ -156,7 +188,11 @@
             <attribute name="adx_nextstep" />
             <attribute name="mal_filteredsource" />
             <filter type="and">
-                <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{params.pcnwf}}" />
+                {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                    <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{params.pcnwf}}" />
+                {% else %}
+                    <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{mainWebPage['wfalias.adx_webformid']}}" />
+                {% endif %}
             </filter>
         </entity>
     </fetch>
@@ -169,7 +205,11 @@
             <attribute name="adx_webformid" />
             <attribute name="adx_startstep" />
             <filter type="and">
-                <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
+                {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                    <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
+                {% else %}
+                    <condition attribute="adx_webformid" operator="eq" value="{{mainWebPage['wfalias.adx_webformid']}}" />
+                {% endif %}
             </filter>
         </entity>
     </fetch>
@@ -199,9 +239,13 @@
                 <attribute name="adx_name" />
                 <attribute name="mal_filteredsource" />
                 <filter type="or">
-                {% for entityFormId in entityFormsArray %}
-                    <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
-                {% endfor %}
+                {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                    {% for entityFormId in entityFormsArray %}
+                        <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
+                    {% endfor %}
+                {% else %}
+                    <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
+                {% endif %}
                 </filter>
             </link-entity>
         </entity>
@@ -216,9 +260,13 @@
         <attribute name="mal_filteredsource" />
         <order attribute="adx_entityformid" descending="true" />
         <filter type="or">
-        {% for entityFormId in entityFormsArray %}
-            <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
-        {% endfor %}
+        {% if MainWebTemplateFetch.results.entities.size > 0 %}
+            {% for entityFormId in entityFormsArray %}
+                <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
+            {% endfor %}
+        {% else %}
+            <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
+        {% endif %}
         </filter>       
     </entity>
     </fetch>
@@ -228,6 +276,7 @@
     {% assign entityFormsResults = EntityFormsFetch.results.entities %}
 
 {% endif %}   
+ 
 
 {% if params.pcnmef %}
     {% assign modalEntityFormsArray = params.pcnmef | split: '_' %}
@@ -275,20 +324,36 @@
 
 {% endif %}  
 
-{% if params.pcnel and params.pcnel != "null" %} 
+{% if MainWebTemplateFetch.results.entities.size > 0 %}
+    {% if params.pcnel and params.pcnel != "null" %} 
+        {%fetchxml EntityListsFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_entitylist">
+                <attribute name="adx_name" />
+                <filter type="and">
+                    <condition attribute="adx_entitylistid" operator="eq" value="{{params.pcnel}}" />
+                </filter>
+            </entity>
+        </fetch>
+        {%endfetchxml%}
+
+        {% assign entityListsResults = EntityListsFetch.results.entities %}
+    {% endif %}  
+{% elsif mainWebPage['elalias.adx_entitylistid'] %}
     {%fetchxml EntityListsFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_entitylist">
-            <attribute name="adx_name" />
-            <filter type="and">
-                <condition attribute="adx_entitylistid" operator="eq" value="{{params.pcnel}}" />
-            </filter>
-        </entity>
-    </fetch>
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_entitylist">
+                <attribute name="adx_name" />
+                <filter type="and">
+                    <condition attribute="adx_entitylistid" operator="eq" value="{{mainWebPage['elalias.adx_entitylistid']}}" />
+                </filter>
+            </entity>
+        </fetch>
     {%endfetchxml%}
 
     {% assign entityListsResults = EntityListsFetch.results.entities %}
-{% endif %}  
+{% endif %}
+
 
 {% if params.pcnmef or params.pcnef or params.pcnmef or params.pcnwf %}    
     {% if params.pcnmef %}
@@ -297,7 +362,7 @@
     {% if params.pcnef %}
         {% assign allMetadata = allMetadata | concat: entiyFormMetadataResults %}
     {% endif %}
-    {% if params.pcnwf %}
+    {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
         {% assign allMetadata = allMetadata | concat: webFormStepsMetadata %}
     {% endif %}
 {% endif %}
@@ -324,7 +389,7 @@
             {% endfor %}
         ],
     {% endif %}        
-    {% if params.pcnwf %}
+    {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
         "webForms": [
             {
                 "text":"{{webForm.adx_name}}", 
@@ -359,6 +424,19 @@
                                     {% assign stepName = currentWebFormStep.adx_name" %}    
                                 {% endif %}
                             {% endif %}
+
+                            {% if mainWebPage['wfalias.adx_webformid'] and request.params.pcnwfstepid == "null" %}
+                                {% if webForm.adx_startstep.id == currentWebFormStep.id %}
+                                    {% assign isStartStep = "yes" %}
+                                    {% assign stepColor = "lavender" %}
+                                    {% assign stepName = currentWebFormStep.adx_name" %}
+                                    {% assign tagName = "Current Web Form Step" %}
+                                {% else %}
+                                    {% assign stepColor = "white" %}
+                                    {% assign stepName = currentWebFormStep.adx_name" %}    
+                                {% endif %}
+                            {% endif %}
+
                             "text":"{{stepName}}", 
                             "id":"{{currentWebFormStep.id}}", 
                             "order":100,
@@ -610,26 +688,43 @@
             {% endfor %}
         ],
     {% endif %}   
-    "mainWebTemplate": {
-        "text": "{{mainWebTemplate.adx_name}}", 
-        "id": "{{mainWebTemplate.id}}", 
-        "componentType": "wt", 
-        "state": {"expanded": true}, 
-        "nodes": [], 
-        "backColor": "white",
-        "hasParent": false, 
-        "ancestors": [],
-        "tags": ["Main Web Template"],
-        "href": "{{environmentURL}}&etn=adx_webtemplate&id={{mainWebTemplate.id}}", 
-        "color": "purple", 
-        "source": "{{mainWebTemplate.mal_filteredsource}}"
-    },
+    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+        "mainWebTemplate": {
+            "text": "{{mainWebTemplate.adx_name}}", 
+            "id": "{{mainWebTemplate.id}}", 
+            "componentType": "wt", 
+            "state": {"expanded": true}, 
+            "nodes": [], 
+            "backColor": "white",
+            "hasParent": false, 
+            "ancestors": [],
+            "tags": ["Main Web Template"],
+            "href": "{{environmentURL}}&etn=adx_webtemplate&id={{mainWebTemplate.id}}", 
+            "color": "purple", 
+            "source": "{{mainWebTemplate.mal_filteredsource}}"
+        },
+    {% else %}
+        "mainWebTemplate": {
+            "text": "{{mainWebPage['ptalias.adx_name']}}", 
+            "id": "{{mainWebPage.adx_pagetemplateid.id}}", 
+            "componentType": "pt", 
+            "state": {"expanded": true}, 
+            "nodes": [], 
+            "backColor": "white",
+            "hasParent": false, 
+            "ancestors": [],
+            "tags": ["Rewrite Page Template"],
+            "href": "{{environmentURL}}&etn=adx_pagetemplate&id={{mainWebPage.adx_pagetemplateid.id}}", 
+            "color": "purple", 
+            "source": ""
+        },
+    {% endif %}
     "mainWebPage": {
         "text": "{{mainWebPage.adx_name}}", 
         "id": "{{mainWebPage.id}}", 
         "componentType": "wp", 
-        "state": {"expanded": true}, 
-        "nodes": [], 
+        "state": {"expanded": true},         
+        "nodes": [],         
         "backColor": "lightgray",
         "hasParent": false, 
         "ancestors": [],
