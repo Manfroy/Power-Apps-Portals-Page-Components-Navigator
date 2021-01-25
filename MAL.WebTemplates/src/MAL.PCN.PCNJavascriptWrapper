@@ -83,7 +83,7 @@
       // Once admin bar is rendered, add PCN and Metadata Buttons
       let waitForAdminBar = setInterval(function () {
         let adminBar = document.querySelectorAll('.yui-skin-sam .bd')[0];
-        $(adminBar).parent().css('width','120px');
+        $(adminBar).parent().css('width','125px');
         if (adminBar) {
           let pcnButtonDiv = document.createElement('div');
           pcnButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module');
@@ -131,12 +131,15 @@
 
           adminBar.append(mdtaCreateButtonDiv);
           $('#malBtnCreateMdta').click(function() {
-            const formid = $(this).data('metadataParentFormId');
+            let formid = $(this).data('metadataParentFormId');
+            if (formid.startsWith('EntityFormView')){
+                formid = '{{page.adx_entityform.id}}';
+            }
             const metadataTypelogicalName = $(this).data('isEntityForm') == 'true' ? 'adx_entityformmetadata' : 'adx_webformmetadata';
             const formTypeLogicalName = $(this).data('isEntityForm') == 'true' ? 'adx_entityform' : 'adx_webformstep';
             let json = {
               "adx_type": 100000000,
-              "adx_attributelogicalname": $(this).data('metadataLogicalName'),
+              "adx_attributelogicalname": $(this).data('metadataLogicalName')
             };
 
             json[`${formTypeLogicalName}@odata.bind`] = `${formTypeLogicalName}s(${formid})`;    
@@ -354,11 +357,21 @@
                 setTimeout(async function() {
 
                   // Set up Mdta logic for each control on focus and focusout events
-                  $(iFrameBody).find('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, true));        
+                  $(iFrameBody).find('div.control input, div.control select, div.control textarea').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, true));        
 
                   let data = await PCNUtils.getData();
+                  let componentsTree = PCNUtils.createComponentsTree(data);
+
+                  // Get orphan components under main web page node if the page has a rewrite page template
+                  if (componentsTree[1].nodes[0].tags[0] != "Main Web Template"){
+                    if (componentsTree[2].text == "Components with unresolved parents or dynamically referenced"){
+                      componentsTree[1].nodes = componentsTree[1].nodes.concat(componentsTree[2].nodes);
+                      componentsTree.splice(2, 1);
+                    }
+                  }
+
                   $('#malPcnComponentsTree').treeview({
-                    data: PCNUtils.createComponentsTree(data),
+                    data: componentsTree,
                     enableLinks: true,
                     levels: 20,
                     showTags: true
@@ -372,7 +385,7 @@
         })
 
         // Set up Mdta functionality for controls on non-modal forms
-        $('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, false, webForms));        
+        $('div.control input, div.control select, div.control textarea').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, false, webForms));        
       }
 
 
@@ -384,8 +397,18 @@
           let data = await PCNUtils.getData();
           setUpMetadataNavigation(data.allMetadata, data.webForms);
 
+          let componentsTree = PCNUtils.createComponentsTree(data);
+
+          // Get orphan components under main web page node if the page as a rewrite page template
+          if (componentsTree[1].nodes[0].tags[0] != "Main Web Template"){
+            if (componentsTree[2].text == "Components with unresolved parents or dynamically referenced"){
+              componentsTree[1].nodes = componentsTree[1].nodes.concat(componentsTree[2].nodes);
+              componentsTree.splice(2, 1);
+            }
+          }
+
           $('#malPcnComponentsTree').treeview({
-            data: PCNUtils.createComponentsTree(data),
+            data: componentsTree,
             enableLinks: true,
             levels: 20,
             showTags: true
