@@ -145,7 +145,9 @@ namespace MAL.PCN.Workflows
 			string[][] siteSettingsToCreate =
 			{
 				new string[]{ "MAL.PCN.EnvironmentURL", EnvironmentURL.Get(executionContext), "d4ed9c23-6020-490a-a82c-65255b4987bc" },
-				new string[]{ "MAL.PCN.EnablePCN","true","19f848a3-2b6b-442d-9204-ccd00c0ad172" }
+				new string[]{ "MAL.PCN.EnablePCN","true","19f848a3-2b6b-442d-9204-ccd00c0ad172" },				
+				new string[]{ "Webapi/mal_pcnattributemetadata/enabled", "true","ed29bb88-0a44-eb11-a812-000d3af43f23" },
+				new string[]{ "Webapi/mal_pcnattributemetadata/fields", "mal_attributelogicalname,mal_EntityForm,mal_WebFormStep", "3ee93a99-0a44-eb11-a812-000d3af43f23" }
 			};
 
 			Entity siteSettingToCreate;
@@ -170,17 +172,18 @@ namespace MAL.PCN.Workflows
 			tracingService.Trace($"Start of CreateEntityPermissions");
 			string[][] entityPermissions =
 			{
-				new string[]{ "adx_entityform","MAL.PCN.EntityForm.Read","86fa1d4b-01c4-4de9-8ae2-b80a831b9a33" },
+				new string[]{ "adx_entityform", "MAL.PCN.EntityForm.Read|Append", "86fa1d4b-01c4-4de9-8ae2-b80a831b9a33" },
 				new string[]{ "adx_entityformmetadata", "MAL.PCN.EntityFormMetadata.Read", "6b728a1c-5040-40ac-863a-6786f17941ea" },
 				new string[]{ "adx_webform", "MAL.PCN.WebForm.Read", "23e501b8-d657-4623-9f0d-daf1a613a79a" },
-				new string[]{ "adx_webformstep", "MAL.PCN.WebFormStep.Read", "98f25f84-5dc1-4b00-8536-a2ffc38abd0d" },
+				new string[]{ "adx_webformstep", "MAL.PCN.WebFormStep.Read|Append", "98f25f84-5dc1-4b00-8536-a2ffc38abd0d" },
 				new string[]{ "adx_webformmetadata", "MAL.PCN.WebFormMetadata.Read", "ac058973-ec71-4f38-9203-cd6fe94f2f15" },
 				new string[]{ "adx_webtemplate", "MAL.PCN.WebTemplate.Read", "6481fe1a-784a-4aaf-a42f-35e354e729c3" },
 				new string[]{ "adx_sitemarker", "MAL.PCN.SiteMarker.Read", "6ac03794-1351-4478-b4f6-b6304bd661ec" },
 				new string[]{ "adx_webpage", "MAL.PCN.WebPage.Read", "98abfff7-6a67-483d-b490-63fed0cc4d34" },
 				new string[]{ "contact", "MAL.PCN.Contact.Read", "c2bac820-f188-4957-88c0-5ea13e188329" },
 				new string[]{ "adx_entitylist", "MAL.PCN.EntityList.Read", "c5d7ad70-1f72-4512-a7e6-d7b676e6c3ec" },
-				new string[]{ "adx_webrole", "MAL.PCN.WebRole.Read", "d6a0a238-e40b-eb11-a813-000d3af444d9" }
+				new string[]{ "adx_webrole", "MAL.PCN.WebRole.Read", "d6a0a238-e40b-eb11-a813-000d3af444d9" },
+				new string[]{ "mal_pcnattributemetadata", "MAL.PCN.PcnAttributeMetadata.Read|AppendTo|Write|Create|Delete", "7188062a-4e60-eb11-a812-000d3a0c609f" }
 			};
 
 			Entity entityPermissionToCreate;
@@ -191,6 +194,17 @@ namespace MAL.PCN.Workflows
 				entityPermissionToCreate["adx_websiteid"] = new EntityReference("adx_website", context.PrimaryEntityId);
 				entityPermissionToCreate["adx_scope"] = new OptionSetValue(756150000); // Set Scope to Global -> 756150000
 				entityPermissionToCreate["adx_read"] = true;
+				if (entityPermission[1] == "MAL.PCN.WebFormStep.Read|Append" || entityPermission[1] == "MAL.PCN.EntityForm.Read|Append")
+				{
+					entityPermissionToCreate["adx_append"] = true;
+				}
+				if (entityPermission[1] == "MAL.PCN.PcnAttributeMetadata.Read|AppendTo|Write|Create|Delete")
+				{
+					entityPermissionToCreate["adx_create"] = true;
+					entityPermissionToCreate["adx_appendto"] = true;
+					entityPermissionToCreate["adx_write"] = true;
+					entityPermissionToCreate["adx_delete"] = true;
+				}
 				entityPermissionToCreate["adx_entitylogicalname"] = entityPermission[0];
 				service.Create(entityPermissionToCreate);
 			}
