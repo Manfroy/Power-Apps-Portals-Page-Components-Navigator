@@ -446,7 +446,7 @@ class PCNUtils {
             // Remaining orphans are those without parents and those whose id is not the same as a component with parent
             const remainingOrphanComponents = allSourceComponents.filter((c) => !c.hasParent && !componentsWithParent.includes(c.id));
             // Finds the orphans that are not referenced on any other component
-            const rootOrphans = remainingOrphanComponents.filter((c, i, arr) => !arr.find((p) => this.includedInParentSource(c, p)));
+            const rootOrphans = remainingOrphanComponents.filter((c, i, arr) => !arr.find((p) => c.id != p.id && this.includedInParentSource(c, p)));
             rootOrphans.forEach((c) => this.getNestedChildren(c, remainingOrphanComponents));
             return rootOrphans;
         }
@@ -523,14 +523,16 @@ class PCNUtils {
             const webPageTree = this.createWebPageTree(mainWebPage, mainWebTemplateTree, allSourceComponents);
             this.createModalEntityFormsTrees(modalEntityForms, allSourceComponents);
             const modalEntityFormsTree = {
-                text: "Modal Entity Forms (Children components will only show once forms have been opened)",
+                text: "Modal Entity Forms (Child components will only show once forms have been opened)",
                 backColor: "lightgray",
+                color: "black",
                 state: { expanded: true },
                 nodes: modalEntityForms,
             };
             const orphanOrDynamicallyInserted = {
                 text: "Components with unresolved parents or dynamically referenced",
                 backColor: "lightgray",
+                color: "black",
                 state: { expanded: true },
                 nodes: this.createTreeOfRemainingComponents(allSourceComponents, webTemplatesWithBlocks),
             };

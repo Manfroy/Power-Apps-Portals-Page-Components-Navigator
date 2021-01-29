@@ -594,7 +594,8 @@ class PCNUtils {
 
       // Finds the orphans that are not referenced on any other component
       const rootOrphans = remainingOrphanComponents.filter(
-        (c, i, arr) => !arr.find((p) => this.includedInParentSource(c, p))
+        (c, i, arr) =>
+          !arr.find((p) => c.id != p.id && this.includedInParentSource(c, p))
       );
 
       rootOrphans.forEach((c) =>
@@ -737,8 +738,9 @@ class PCNUtils {
 
       const modalEntityFormsTree = {
         text:
-          "Modal Entity Forms (Children components will only show once forms have been opened)",
+          "Modal Entity Forms (Child components will only show once forms have been opened)",
         backColor: "lightgray",
+        color: "black",
         state: { expanded: true },
         nodes: modalEntityForms,
       };
@@ -746,6 +748,7 @@ class PCNUtils {
       const orphanOrDynamicallyInserted = {
         text: "Components with unresolved parents or dynamically referenced",
         backColor: "lightgray",
+        color: "black",
         state: { expanded: true },
         nodes: this.createTreeOfRemainingComponents(
           allSourceComponents,
