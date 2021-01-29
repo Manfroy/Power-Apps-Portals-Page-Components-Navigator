@@ -52,9 +52,38 @@
     </div>
 
     <script>
+
+      //Web API ajax wrapper
+      (function (webapi, $) {
+          function safeAjax(ajaxOptions) {
+              var deferredAjax = $.Deferred();
+              shell.getTokenDeferred().done(function (token) {
+                  // Add headers for ajax
+                  if (!ajaxOptions.headers) {
+                      $.extend(ajaxOptions, {
+                          headers: {
+                              "__RequestVerificationToken": token
+                          }
+                      });
+                  } else {
+                      ajaxOptions.headers["__RequestVerificationToken"] = token;
+                  }
+                  $.ajax(ajaxOptions)
+                      .done(function (data, textStatus, jqXHR) {
+                          validateLoginSession(data, textStatus, jqXHR, deferredAjax.resolve);
+                      }).fail(deferredAjax.reject); //ajax
+              }).fail(function () {
+                  deferredAjax.rejectWith(this, arguments); // On token failure pass the token ajax and args
+              });
+              return deferredAjax.promise();
+          }
+          webapi.safeAjax = safeAjax;
+      })(window.webapi = window.webapi || {}, jQuery)
+
       // Once admin bar is rendered, add PCN and Metadata Buttons
       let waitForAdminBar = setInterval(function () {
         let adminBar = document.querySelectorAll('.yui-skin-sam .bd')[0];
+        $(adminBar).parent().css('width','125px');
         if (adminBar) {
           let pcnButtonDiv = document.createElement('div');
           pcnButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module');
@@ -68,26 +97,90 @@
               </span>`;
           adminBar.append(pcnButtonDiv);
 
-          let mdtaButtonDiv = document.createElement('div');
-          mdtaButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module hidden');
-          mdtaButtonDiv.innerHTML =       
+          let mdtaEditButtonDiv = document.createElement('div');
+          mdtaEditButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module hidden');
+          mdtaEditButtonDiv.innerHTML =       
               `<span id="malOpenMdta" class="yui-button yui-push-button">
                 <span class="first-child">
-                  <button id="malBtnMdta" style="width: 100%; text-align: left" type="button">
-                    Mdta
+                  <button id="malBtnEditMdta" style="width: 100%; text-align: left" type="button">
+                    <span class="fa fa-external-link"></span>
+                    <span id="malSpanCreateMdta">Open Mdta</span>
                   </button>
                 </span>
               </span>`;    
 
           // Open Mdta URL on click of Mdta button
-          adminBar.append(mdtaButtonDiv);
-          $('#malBtnMdta').click(function() {
+          adminBar.append(mdtaEditButtonDiv);
+          $('#malBtnEditMdta').click(function() {
             window.open($(this).data('url'));
             $('#malOpenMdta').parent().addClass('hidden');
           });
 
-          // Clicking anywhere else will loose the link to the field
+          let mdtaCreateButtonDiv = document.createElement('div');
+          mdtaCreateButtonDiv.setAttribute('class', 'xrm-editable-toolbar-module hidden');
+          mdtaCreateButtonDiv.innerHTML =       
+              `<span id="malCreateMdta" class="yui-button yui-push-button">
+                <span class="first-child">
+                  <button id="malBtnCreateMdta" style="width: 100%; text-align: left" type="button">
+                    <span class="fa fa-plus-circle" aria-hidden="true"></span>
+                    <span class="fa fa-spinner fa-spin hide" aria-hidden="true" style="display: inline-block"></span>
+                    <span id="malSpanCreateMdta">Create Mdta</span>
+                  </button>
+                </span>
+              </span>`; 
+
+          adminBar.append(mdtaCreateButtonDiv);
+          $('#malBtnCreateMdta').click(function() {
+            let formid = $(this).data('metadataParentFormId');
+            if (formid.startsWith('EntityFormView')){
+                formid = '{{page.adx_entityform.id}}';
+            }
+            const metadataTypelogicalName = $(this).data('isEntityForm') == 'true' ? 'adx_entityformmetadata' : 'adx_webformmetadata';
+            const formTypeLogicalName = $(this).data('isEntityForm') == 'true' ? 'adx_entityform' : 'adx_webformstep';
+            let json = {
+              "adx_type": 100000000,
+              "adx_attributelogicalname": $(this).data('metadataLogicalName')
+            };
+
+            json[`${formTypeLogicalName}@odata.bind`] = `${formTypeLogicalName}s(${formid})`;    
+
+            $(this).find('span#malSpanCreateMdta').css('cursor', 'not-allowed !important');
+            $(this).find('.fa.fa-plus-circle').addClass('hide');
+            $(this).find('.fa.fa-spinner.fa-spin').removeClass('hide');
+            $(this).find('span#malSpanCreateMdta').html(' Processing');
+            $(this).prop('disabled', true);
+            webapi.safeAjax({
+                type: "POST",
+                url: `/_api/${metadataTypelogicalName}s`,
+                contentType: "application/json",
+                data: JSON.stringify(json),
+                success: function (res, status, xhr) {
+                    {% assign environmentURL = settings["MAL.PCN.EnvironmentURL"] %}
+                    {% if environmentURL contains 'appid' %}
+                        {% assign environmentURL = environmentURL | append: '&pagetype=entityrecord' %}
+                    {% else %}
+                        {% assign environmentURL = environmentURL | append: '/main.aspx?pagetype=entityrecord' %}
+                    {% endif %}
+
+                    $('#malBtnCreateMdta').find('.fa.fa-plus-circle').removeClass('hide');
+                    $('#malBtnCreateMdta').find('.fa.fa-spinner.fa-spin').addClass('hide');
+                    $('#malBtnCreateMdta').find('span#malSpanCreateMdta').html("Create Mdta");
+                    $('#malBtnCreateMdta').find('span#malSpanCreateMdta').css('cursor', 'pointer');
+                    $('#malBtnCreateMdta').prop('disabled', false);
+                    $('#malCreateMdta').data('metadataId', '');
+                    $('#malCreateMdta').parent().addClass('hidden');
+
+                    window.open(`{{environmentURL}}&etn=${metadataTypelogicalName}&id=${xhr.getResponseHeader("entityid")}`, '_blank')
+                }
+            });
+          });
+
+          // Clear metadataId from Mdta buttons on mouseleave
           $('#malOpenMdta').mouseleave(function() {
+            $(this).data('metadataId', '');
+          });
+
+          $('#malCreateMdta').mouseleave(function() {
             $(this).data('metadataId', '');
           });
 
@@ -161,33 +254,79 @@
        * @param inputControl the input control for which the Mdta button will show
        * @param allMetadata metadata returned from api request
        */
-      function setUpMdtaButton(inputControl, allMetadata) {
+      function setUpMdtaButton(inputControl, allMetadata, formIsModal, webForms) {
         let inputId = $(inputControl).attr('id');
+        let inputAttributeName = $(inputControl).attr('name');
 
-        // If control is a lookup
+        // If control is a lookup field
         if ($(inputControl).parent().hasClass('input-group')){
-          inputId = $(inputControl).next().next().attr('id');
+          inputId = $(inputControl).parent().find('input').eq(1).attr('id');
+          inputAttributeName = $(inputControl).parent().find('input').eq(1).attr('name')
+        }
+
+        // If control is a datetime field
+        if ($(inputControl).parent().hasClass('datetimepicker')){
+          inputId = $(inputControl).parent().prev().attr('id');
+          inputAttributeName = $(inputControl).parent().prev().attr('name');
         }
 
         // Set up Mdta button and div when an input with metadata comes into focus
         $(inputControl).focus(function () {
           
+          // Get if of entity form or webform that contains the field
+          let inputFormId = 
+            formIsModal ? 
+              new URL(`http://test.com${$(inputControl).closest('form').attr('action')}`).searchParams.get('entityformid') : 
+             inputAttributeName.includes('EntityFormControl_') ? 
+             inputAttributeName.substr(inputAttributeName.search("EntityFormControl_") + 18, 32 ) :
+             inputAttributeName.substr(inputAttributeName.search("WebFormControl_") + 15, 32 );
+
+          if (inputFormId.length == 32){
+            inputFormId = `${inputFormId.slice(0, 8)}-${inputFormId.slice(8, 12)}-${inputFormId.slice(12, 16)}-${inputFormId.slice(16, 20)}-${inputFormId.slice(20, 32)}`;
+          }
+
           // Get field metadata from json payload. Account for option sets where id ends with _[item number]
-          const inputMetadata = allMetadata.filter(m => m.text.endsWith(inputId.replace(/_(\d+)/g,'')));
+          const inputMetadata = allMetadata.filter(m => m.text.endsWith(inputId.replace(/_(\d+)/g,'')) && m.parentId == inputFormId);
           
-          if (inputMetadata.length){
-            $('#malBtnMdta').data('url', inputMetadata[0].href);
+          if (inputMetadata.length){ // There's already a metadata for the field
+            $('#malBtnEditMdta').data('url', inputMetadata[0].href);
             $('#malOpenMdta').parent().removeClass('hidden');
             $('#malOpenMdta').mouseenter(function() {
               $(this).data('metadataId', inputId);
             });
-          } 
+          } else { // There's no metadata for the field, so give the option to create one
+            let metadataParentFormId;
+
+            if (inputAttributeName.includes("WebFormControl_")){
+              $('#malBtnCreateMdta').data('isEntityForm', 'false');
+
+              if ("{{params.stepid}}") {
+                metadataParentFormId = "{{params.stepid}}";   
+              } else {
+                metadataParentFormId = webForms[0].nodes.filter(wfs => wfs.isStartStep)[0].id;
+              }
+
+            } else {
+              $('#malBtnCreateMdta').data('isEntityForm', 'true');
+              metadataParentFormId = inputFormId;
+            }
+
+            $('#malBtnCreateMdta').data('metadataParentFormId', metadataParentFormId);
+            $('#malBtnCreateMdta').data('metadataLogicalName', inputId.replace(/_(\d+)/g,''));
+            $('#malCreateMdta').parent().removeClass('hidden');
+            $('#malCreateMdta').mouseenter(function() {
+              $(this).data('metadataId', inputId);
+            });
+          }
         });
 
-        // Hide Mdta button if focusing on another element with no metadata
+        // Hide Mdta button if focusing on another element
         $(inputControl).focusout(function () {
           if ($('#malOpenMdta').data('metadataId') != inputId) {
             $('#malOpenMdta').parent().addClass('hidden');
+          }
+          if ($('#malCreateMdta').data('metadataId') != inputId) {
+            $('#malCreateMdta').parent().addClass('hidden');
           }
         })
       }
@@ -196,7 +335,7 @@
        * Sets up direct metadata navigation for each input control
        * @param allMetadata metadata returned from api request
        */
-      function setUpMetadataNavigation (allMetadata) {
+      function setUpMetadataNavigation (allMetadata, webForms) {
         
         // Mdta functionality for controls on modal entity forms
         document.querySelectorAll('iframe').forEach( function (iFrameElement) {
@@ -215,10 +354,28 @@
               if ($(iFrameBody).find('#EntityFormControl_EntityFormView').html()){
 
                 // Allow some time for all controls to load
-                setTimeout(function() {
+                setTimeout(async function() {
 
                   // Set up Mdta logic for each control on focus and focusout events
-                  $(iFrameBody).find('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata));        
+                  $(iFrameBody).find('div.control input, div.control select, div.control textarea').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, true));        
+
+                  let data = await PCNUtils.getData();
+                  let componentsTree = PCNUtils.createComponentsTree(data);
+
+                  // Get orphan components under main web page node if the page has a rewrite page template
+                  if (componentsTree[1].nodes[0].tags[0] != "Main Web Template"){
+                    if (componentsTree[2].text == "Components with unresolved parents or dynamically referenced"){
+                      componentsTree[1].nodes = componentsTree[1].nodes.concat(componentsTree[2].nodes);
+                      componentsTree.splice(2, 1);
+                    }
+                  }
+
+                  $('#malPcnComponentsTree').treeview({
+                    data: componentsTree,
+                    enableLinks: true,
+                    levels: 20,
+                    showTags: true
+                  });
 
                 }, 100);
                 clearInterval(myInterval);
@@ -228,21 +385,30 @@
         })
 
         // Set up Mdta functionality for controls on non-modal forms
-        $('div.control input, div.control select').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata));        
+        $('div.control input, div.control select, div.control textarea').each((i,inputControl) => setUpMdtaButton(inputControl, allMetadata, false, webForms));        
       }
 
 
       /**
-       * Setps up the created tree of components and the direct control metadata navigation
+       * Set up the created tree of components and the direct control metadata navigation
        */
       async function renderApp(){
         try {
           let data = await PCNUtils.getData();
+          setUpMetadataNavigation(data.allMetadata, data.webForms);
 
-          setUpMetadataNavigation(data.allMetadata);
+          let componentsTree = PCNUtils.createComponentsTree(data);
+
+          // Get orphan components under main web page node if the page as a rewrite page template
+          if (componentsTree[1].nodes[0].tags[0] != "Main Web Template"){
+            if (componentsTree[2].text == "Components with unresolved parents or dynamically referenced"){
+              componentsTree[1].nodes = componentsTree[1].nodes.concat(componentsTree[2].nodes);
+              componentsTree.splice(2, 1);
+            }
+          }
 
           $('#malPcnComponentsTree').treeview({
-            data: PCNUtils.createComponentsTree(data),
+            data: componentsTree,
             enableLinks: true,
             levels: 20,
             showTags: true
@@ -263,6 +429,7 @@
       }
 
       renderApp();   
+
     </script>
 
     <style>
