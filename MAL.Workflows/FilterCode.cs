@@ -23,6 +23,7 @@ namespace MAL.PCN.Workflows
 																				  {"{", string.Empty},
 																				  {"`", string.Empty},
 																				  {"'", string.Empty},
+																				  {"\\\"", string.Empty},
 																				  {"\"", string.Empty},
 																				  {" ", string.Empty},
 																				  {"\t", string.Empty}
