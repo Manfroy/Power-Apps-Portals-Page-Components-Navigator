@@ -5,292 +5,333 @@
     {% assign environmentURL = environmentURL | append: '/main.aspx?pagetype=entityrecord' %}
 {% endif %}
 
-{%fetchxml MainWebPageFetch%}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-  <entity name="adx_webpage">
-    <attribute name="adx_name" />
-    <attribute name="mal_filteredsource" />
-    <attribute name="adx_pagetemplateid" />
-    <attribute name="adx_webform" />
-    <attribute name="adx_entityform" />
-    <attribute name="adx_entitylist" />
-    <filter type="and">
-      <condition attribute="adx_webpageid" operator="eq" value="{{params.wp}}" />
-    </filter>
-    <link-entity name="adx_pagetemplate" from="adx_pagetemplateid" to="adx_pagetemplateid" link-type="outer" alias="ptalias">
-      <attribute name="adx_name" />
-      <attribute name="adx_pagetemplateid" />
-    </link-entity>
-    <link-entity name="adx_webform" from="adx_webformid" to="adx_webform" link-type="outer" alias="wfalias">
-      <attribute name="adx_name" />
-      <attribute name="adx_webformid" />
-    </link-entity>
-    <link-entity name="adx_entitylist" from="adx_entitylistid" to="adx_entitylist" link-type="outer" alias="elalias">
-      <attribute name="adx_name" />
-      <attribute name="adx_entitylistid" />
-    </link-entity>
-    <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="outer" alias="efalias">
-      <attribute name="adx_name" />
-      <attribute name="adx_entityformid" />
-      <attribute name="mal_filteredsource" />
-    </link-entity>
-  </entity>
-</fetch>
-{%endfetchxml%}
-
-{% assign mainWebPage = MainWebPageFetch.results.entities[0] %}
-
-{%fetchxml MainWebTemplateFetch%}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="true">
-    <entity name="adx_webtemplate">
-    <attribute name="adx_webtemplateid" />
-    <attribute name="adx_name" />
-    <attribute name="mal_filteredsource" />
-    <link-entity name="adx_pagetemplate" from="adx_webtemplateid" to="adx_webtemplateid" link-type="inner" alias="ac">
-        <link-entity name="adx_webpage" from="adx_pagetemplateid" to="adx_pagetemplateid" link-type="inner" alias="af">
-        <filter type="and">
-            <condition attribute="adx_webpageid" operator="eq" value="{{params.wp}}" />              
-        </filter>
-        </link-entity>
-    </link-entity>
-    </entity>
-</fetch>
-{%endfetchxml%}
-
-{% if MainWebTemplateFetch.results.entities.size > 0 %}
-    {% assign mainWebTemplate = MainWebTemplateFetch.results.entities[0] %}
-{% endif %}
-
-{%fetchxml FooterWebTemplateFetch%}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-    <entity name="adx_webtemplate">
-        <attribute name="adx_name" />
-        <attribute name="adx_webtemplateid" />
-        <attribute name="mal_filteredsource" />
-        <filter type="and">
-            <condition attribute="statecode" operator="eq" value="0" />
-            <condition attribute="adx_webtemplateid" operator="eq" value="{{website.adx_footerwebtemplateid.id}}" />
-        </filter>
-    </entity>
-</fetch>
-{%endfetchxml%} 
-
-{% assign footerWebTemplate = FooterWebTemplateFetch.results.entities[0] %}
-
-{%fetchxml HeaderWebTemplateFetch%}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-    <entity name="adx_webtemplate">
-        <attribute name="adx_name" />
-        <attribute name="adx_webtemplateid" />
-        <attribute name="mal_filteredsource" />
-        <filter type="and">
-            <condition attribute="statecode" operator="eq" value="0" />
-            <condition attribute="adx_webtemplateid" operator="eq" value="{{website.adx_headerwebtemplateid.id}}" />
-        </filter>
-    </entity>
-</fetch>
-{%endfetchxml%} 
-
-{% assign headerWebTemplate = HeaderWebTemplateFetch.results.entities[0] %}
-
-{% assign webTemplatesArray = params.pcnwt | split: '_' %}
-{%fetchxml webTemplatesFetch%}
-<fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-    <entity name="adx_webtemplate">
-        <attribute name="adx_name" />
-        <attribute name="adx_webtemplateid" />
-        <attribute name="mal_filteredsource" />
-        <filter type="and">
-            <condition attribute="statecode" operator="eq" value="0" />
-            {% if MainWebTemplateFetch.results.entities.size > 0 %}
-                <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
-            {% endif %}
-            <condition attribute="adx_webtemplateid" operator="ne" value="{{headerWebTemplate.id}}" />
-            <condition attribute="adx_webtemplateid" operator="ne" value="{{footerWebTemplate.id}}" />
-            <filter type="or">
-                {% for wt in webTemplatesArray %}            
-                    <condition attribute="adx_webtemplateid" operator="eq" value="{{wt}}" />
-                {% endfor %}              
+{% if params.mdtaattribute %}
+    {%fetchxml pcnAttributeMetadataQuery %}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+        <entity name="mal_pcnattributemetadata">
+            <attribute name="mal_name" />
+            <filter type="and">
+                <condition attribute="mal_pcnattributemetadataid" operator="eq" value="{{params.mdtaattribute}}" />
             </filter>
+        </entity>
+    </fetch>
+    {%endfetchxml%}
+
+    {% assign pcnAttributeMetadataCount = pcnAttributeMetadataQuery.results.entities.size %}
+    {% assign pcnAttributeMetadataId = "" %}
+    {% if pcnAttributeMetadataCount > 0 %}
+        {% assign pcnAttributeMetadata = pcnAttributeMetadataQuery.results.entities[0] %}
+        {% assign pcnAttributeMetadataId = pcnAttributeMetadata.mal_name %}
+    {% endif %}
+
+    {
+        "PCNAttributeMetadataURL": "{{pcnAttributeMetadataId}}"
+    }
+
+{% else %}
+
+    {%fetchxml MainWebPageFetch%}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+    <entity name="adx_webpage">
+        <attribute name="adx_name" />
+        <attribute name="mal_filteredsource" />
+        <attribute name="adx_pagetemplateid" />
+        <attribute name="adx_webform" />
+        <attribute name="adx_entityform" />
+        <attribute name="adx_entitylist" />
+        <filter type="and">
+        <condition attribute="adx_webpageid" operator="eq" value="{{params.wp}}" />
         </filter>
+        <link-entity name="adx_pagetemplate" from="adx_pagetemplateid" to="adx_pagetemplateid" link-type="outer" alias="ptalias">
+        <attribute name="adx_name" />
+        <attribute name="adx_pagetemplateid" />
+        </link-entity>
+        <link-entity name="adx_webform" from="adx_webformid" to="adx_webform" link-type="outer" alias="wfalias">
+        <attribute name="adx_name" />
+        <attribute name="adx_webformid" />
+        </link-entity>
+        <link-entity name="adx_entitylist" from="adx_entitylistid" to="adx_entitylist" link-type="outer" alias="elalias">
+        <attribute name="adx_name" />
+        <attribute name="adx_entitylistid" />
+        </link-entity>
+        <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="outer" alias="efalias">
+        <attribute name="adx_name" />
+        <attribute name="adx_entityformid" />
+        <attribute name="mal_filteredsource" />
+        </link-entity>
     </entity>
-</fetch>
-{%endfetchxml%}  
+    </fetch>
+    {%endfetchxml%}
 
-{% assign webTemplatesResults = webTemplatesFetch.results.entities %}
+    {% assign mainWebPage = MainWebPageFetch.results.entities[0] %}
 
-{% if MainWebTemplateFetch.results.entities.size > 0 %}
-    {% if mainWebTemplate.mal_filteredsource contains '%extends' %}
-        {%fetchxml webTemplatesWithBlocksFetch%}
+    {%fetchxml MainWebTemplateFetch%}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="true">
+        <entity name="adx_webtemplate">
+        <attribute name="adx_webtemplateid" />
+        <attribute name="adx_name" />
+        <attribute name="mal_filteredsource" />
+        <link-entity name="adx_pagetemplate" from="adx_webtemplateid" to="adx_webtemplateid" link-type="inner" alias="ac">
+            <link-entity name="adx_webpage" from="adx_pagetemplateid" to="adx_pagetemplateid" link-type="inner" alias="af">
+            <filter type="and">
+                <condition attribute="adx_webpageid" operator="eq" value="{{params.wp}}" />              
+            </filter>
+            </link-entity>
+        </link-entity>
+        </entity>
+    </fetch>
+    {%endfetchxml%}
+
+    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+        {% assign mainWebTemplate = MainWebTemplateFetch.results.entities[0] %}
+    {% endif %}
+
+    {%fetchxml FooterWebTemplateFetch%}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+        <entity name="adx_webtemplate">
+            <attribute name="adx_name" />
+            <attribute name="adx_webtemplateid" />
+            <attribute name="mal_filteredsource" />
+            <filter type="and">
+                <condition attribute="statecode" operator="eq" value="0" />
+                <condition attribute="adx_webtemplateid" operator="eq" value="{{website.adx_footerwebtemplateid.id}}" />
+            </filter>
+        </entity>
+    </fetch>
+    {%endfetchxml%} 
+
+    {% assign footerWebTemplate = FooterWebTemplateFetch.results.entities[0] %}
+
+    {%fetchxml HeaderWebTemplateFetch%}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+        <entity name="adx_webtemplate">
+            <attribute name="adx_name" />
+            <attribute name="adx_webtemplateid" />
+            <attribute name="mal_filteredsource" />
+            <filter type="and">
+                <condition attribute="statecode" operator="eq" value="0" />
+                <condition attribute="adx_webtemplateid" operator="eq" value="{{website.adx_headerwebtemplateid.id}}" />
+            </filter>
+        </entity>
+    </fetch>
+    {%endfetchxml%} 
+
+    {% assign headerWebTemplate = HeaderWebTemplateFetch.results.entities[0] %}
+
+    {% assign webTemplatesArray = params.pcnwt | split: '_' %}
+    {%fetchxml webTemplatesFetch%}
+    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+        <entity name="adx_webtemplate">
+            <attribute name="adx_name" />
+            <attribute name="adx_webtemplateid" />
+            <attribute name="mal_filteredsource" />
+            <filter type="and">
+                <condition attribute="statecode" operator="eq" value="0" />
+                {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                    <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
+                {% endif %}
+                <condition attribute="adx_webtemplateid" operator="ne" value="{{headerWebTemplate.id}}" />
+                <condition attribute="adx_webtemplateid" operator="ne" value="{{footerWebTemplate.id}}" />
+                <filter type="or">
+                    {% for wt in webTemplatesArray %}            
+                        <condition attribute="adx_webtemplateid" operator="eq" value="{{wt}}" />
+                    {% endfor %}              
+                </filter>
+            </filter>
+        </entity>
+    </fetch>
+    {%endfetchxml%}  
+
+    {% assign webTemplatesResults = webTemplatesFetch.results.entities %}
+
+    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+        {% if mainWebTemplate.mal_filteredsource contains '%extends' %}
+            {%fetchxml webTemplatesWithBlocksFetch%}
+            <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+                <entity name="adx_webtemplate">
+                    <attribute name="adx_name" />
+                    <attribute name="mal_filteredsource" />
+                    <filter type="and">
+                        <condition attribute="adx_source" operator="like" value="%endblock%" />
+                        <condition attribute="statecode" operator="eq" value="0" />
+                        <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
+                        <condition attribute="adx_name" operator="ne" value="Get Page Components" />
+                        <condition attribute="adx_name" operator="ne" value="Page Components Navigator v2" />
+                    </filter>
+                </entity>
+            </fetch>
+            {%endfetchxml%} 
+
+            {% assign webTemplatesWithBlocksResults = webTemplatesWithBlocksFetch.results.entities %}
+        {% endif %}
+    {% endif %}
+
+
+    {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
+        {%fetchxml webFormStepsMetadataFetch%}
         <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-            <entity name="adx_webtemplate">
+            <entity name="adx_webformmetadata">
+                <attribute name="adx_webformstep" />
+                <attribute name="adx_attributelogicalname" />
+                <attribute name="adx_tabname" />
+                <attribute name="adx_sectionname" />
+                <attribute name="adx_subgrid_name" />
+                <attribute name="adx_type" />      
+                <order attribute="adx_webformstep" descending="false" />  
+                <filter type="and">
+                    <condition attribute="statecode" operator="eq" value="0" />
+                </filter>
+                <link-entity name="adx_webformstep" from="adx_webformstepid" to="adx_webformstep" link-type="inner" alias="ab">
+                    <attribute name="adx_name" />
+                    <attribute name="adx_webformstepid" />
+                    <attribute name="mal_filteredsource" />
+                    <attribute name="adx_nextstep" />
+                    <filter type="and">
+                        <condition attribute="statecode" operator="eq" value="0" />
+                    </filter>
+                    <link-entity name="adx_webform" from="adx_webformid" to="adx_webform" link-type="inner" alias="ac">
+                        <attribute name="adx_name" />
+                        <attribute name="adx_webformid" />
+                        <attribute name="adx_startstep" />
+                        <filter type="and">
+                        {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                            <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
+                        {% else %}
+                            <condition attribute="adx_webformid" operator="eq" value="{{mainWebPage['wfalias.adx_webformid']}}" />
+                        {% endif %}
+                        </filter>
+                    </link-entity>
+                </link-entity>
+            </entity>
+        </fetch>
+        {%endfetchxml%}
+        
+        {%fetchxml webFormStepsFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_webformstep">
                 <attribute name="adx_name" />
+                <attribute name="adx_nextstep" />
                 <attribute name="mal_filteredsource" />
                 <filter type="and">
-                    <condition attribute="adx_source" operator="like" value="%endblock%" />
-                    <condition attribute="statecode" operator="eq" value="0" />
-                    <condition attribute="adx_webtemplateid" operator="ne" value="{{mainWebTemplate.id}}" />
-                    <condition attribute="adx_name" operator="ne" value="Get Page Components" />
-                    <condition attribute="adx_name" operator="ne" value="Page Components Navigator v2" />
+                    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                        <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{params.pcnwf}}" />
+                    {% else %}
+                        <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{mainWebPage['wfalias.adx_webformid']}}" />
+                    {% endif %}
                 </filter>
             </entity>
         </fetch>
-        {%endfetchxml%} 
+        {%endfetchxml%}
 
-        {% assign webTemplatesWithBlocksResults = webTemplatesWithBlocksFetch.results.entities %}
-    {% endif %}
-{% endif %}
-
-
-{% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
-    {%fetchxml webFormStepsMetadataFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_webformmetadata">
-            <attribute name="adx_webformstep" />
-            <attribute name="adx_attributelogicalname" />
-            <attribute name="adx_tabname" />
-            <attribute name="adx_sectionname" />
-            <attribute name="adx_subgrid_name" />
-            <attribute name="adx_type" />      
-            <order attribute="adx_webformstep" descending="false" />  
-            <filter type="and">
-                <condition attribute="statecode" operator="eq" value="0" />
-            </filter>
-            <link-entity name="adx_webformstep" from="adx_webformstepid" to="adx_webformstep" link-type="inner" alias="ab">
+        {%fetchxml webFormFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_webform">    
                 <attribute name="adx_name" />
-                <attribute name="adx_webformstepid" />
-                <attribute name="mal_filteredsource" />
-                <attribute name="adx_nextstep" />
+                <attribute name="adx_webformid" />
+                <attribute name="adx_startstep" />
                 <filter type="and">
-                    <condition attribute="statecode" operator="eq" value="0" />
-                </filter>
-                <link-entity name="adx_webform" from="adx_webformid" to="adx_webform" link-type="inner" alias="ac">
-                    <attribute name="adx_name" />
-                    <attribute name="adx_webformid" />
-                    <attribute name="adx_startstep" />
-                    <filter type="and">
                     {% if MainWebTemplateFetch.results.entities.size > 0 %}
                         <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
                     {% else %}
                         <condition attribute="adx_webformid" operator="eq" value="{{mainWebPage['wfalias.adx_webformid']}}" />
                     {% endif %}
+                </filter>
+            </entity>
+        </fetch>
+        {%endfetchxml%}
+
+        {% assign webFormStepsMetadata = webFormStepsMetadataFetch.results.entities %}
+        {% assign webFormSteps = webFormStepsFetch.results.entities %}
+        {% assign webForm = webFormFetch.results.entities[0] %}
+
+    {%endif%}
+
+    {% if params.pcnef %}
+        {% assign entityFormsArray = params.pcnef | split: '_' %}
+
+        {%fetchxml EntityFormsMetadataFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_entityformmetadata">
+                <attribute name="adx_entityform" />
+                <attribute name="adx_attributelogicalname" />
+                <attribute name="adx_tabname" />
+                <attribute name="adx_sectionname" />
+                <attribute name="adx_subgrid_name" />
+                <attribute name="adx_type" />
+                <order attribute="adx_entityform" descending="false" />
+                <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="inner" alias="efalias">
+                    <attribute name="adx_entityformid" />
+                    <attribute name="adx_name" />
+                    <attribute name="mal_filteredsource" />
+                    <filter type="or">
+                    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                        {% for entityFormId in entityFormsArray %}
+                            <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
+                        {% endfor %}
+                    {% else %}
+                        <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
+                    {% endif %}
                     </filter>
                 </link-entity>
-            </link-entity>
-        </entity>
-    </fetch>
-    {%endfetchxml%}
-    
-    {%fetchxml webFormStepsFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_webformstep">
+            </entity>
+        </fetch>
+        {%endfetchxml%}
+
+        {%fetchxml EntityFormsFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+        <entity name="adx_entityform">
+            <attribute name="adx_entityformid" />
             <attribute name="adx_name" />
-            <attribute name="adx_nextstep" />
             <attribute name="mal_filteredsource" />
-            <filter type="and">
-                {% if MainWebTemplateFetch.results.entities.size > 0 %}
-                    <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{params.pcnwf}}" />
-                {% else %}
-                    <condition attribute="adx_webform" operator="eq" uitype="adx_webform" value="{{mainWebPage['wfalias.adx_webformid']}}" />
-                {% endif %}
-            </filter>
+            <order attribute="adx_entityformid" descending="true" />
+            <filter type="or">
+            {% if MainWebTemplateFetch.results.entities.size > 0 %}
+                {% for entityFormId in entityFormsArray %}
+                    <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
+                {% endfor %}
+            {% else %}
+                <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
+            {% endif %}
+            </filter>       
         </entity>
-    </fetch>
-    {%endfetchxml%}
+        </fetch>
+        {%endfetchxml%}      
 
-    {%fetchxml webFormFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_webform">    
-            <attribute name="adx_name" />
-            <attribute name="adx_webformid" />
-            <attribute name="adx_startstep" />
-            <filter type="and">
-                {% if MainWebTemplateFetch.results.entities.size > 0 %}
-                    <condition attribute="adx_webformid" operator="eq" value="{{params.pcnwf}}" />
-                {% else %}
-                    <condition attribute="adx_webformid" operator="eq" value="{{mainWebPage['wfalias.adx_webformid']}}" />
-                {% endif %}
-            </filter>
-        </entity>
-    </fetch>
-    {%endfetchxml%}
+        {% assign entiyFormMetadataResults = EntityFormsMetadataFetch.results.entities %}
+        {% assign entityFormsResults = EntityFormsFetch.results.entities %}
 
-    {% assign webFormStepsMetadata = webFormStepsMetadataFetch.results.entities %}
-    {% assign webFormSteps = webFormStepsFetch.results.entities %}
-    {% assign webForm = webFormFetch.results.entities[0] %}
+    {% endif %}   
+    
 
-{%endif%}
+    {% if params.pcnmef %}
+        {% assign modalEntityFormsArray = params.pcnmef | split: '_' %}
 
-{% if params.pcnef %}
-    {% assign entityFormsArray = params.pcnef | split: '_' %}
-
-    {%fetchxml EntityFormsMetadataFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_entityformmetadata">
-            <attribute name="adx_entityform" />
-            <attribute name="adx_attributelogicalname" />
-            <attribute name="adx_tabname" />
-            <attribute name="adx_sectionname" />
-            <attribute name="adx_subgrid_name" />
-            <attribute name="adx_type" />
-            <order attribute="adx_entityform" descending="false" />
-            <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="inner" alias="efalias">
-                <attribute name="adx_entityformid" />
-                <attribute name="adx_name" />
-                <attribute name="mal_filteredsource" />
-                <filter type="or">
-                {% if MainWebTemplateFetch.results.entities.size > 0 %}
-                    {% for entityFormId in entityFormsArray %}
+        {%fetchxml ModalEntityFormsMetadataFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_entityformmetadata">
+                <attribute name="adx_entityform" />
+                <attribute name="adx_attributelogicalname" />
+                <attribute name="adx_tabname" />
+                <attribute name="adx_sectionname" />
+                <attribute name="adx_subgrid_name" />
+                <attribute name="adx_type" />
+                <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="inner" alias="efalias">
+                    <attribute name="adx_entityformid" />
+                    <attribute name="adx_name" />
+                    <attribute name="mal_filteredsource" />
+                    <filter type="or">
+                    {% for entityFormId in modalEntityFormsArray %}
                         <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
                     {% endfor %}
-                {% else %}
-                    <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
-                {% endif %}
-                </filter>
-            </link-entity>
-        </entity>
-    </fetch>
-    {%endfetchxml%}
+                    </filter>
+                </link-entity>
+            </entity>
+        </fetch>
+        {%endfetchxml%}
 
-    {%fetchxml EntityFormsFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-    <entity name="adx_entityform">
-        <attribute name="adx_entityformid" />
-        <attribute name="adx_name" />
-        <attribute name="mal_filteredsource" />
-        <order attribute="adx_entityformid" descending="true" />
-        <filter type="or">
-        {% if MainWebTemplateFetch.results.entities.size > 0 %}
-            {% for entityFormId in entityFormsArray %}
-                <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
-            {% endfor %}
-        {% else %}
-            <condition attribute="adx_entityformid" operator="eq" value="{{mainWebPage['efalias.adx_entityformid']}}" />
-        {% endif %}
-        </filter>       
-    </entity>
-    </fetch>
-    {%endfetchxml%}      
-
-    {% assign entiyFormMetadataResults = EntityFormsMetadataFetch.results.entities %}
-    {% assign entityFormsResults = EntityFormsFetch.results.entities %}
-
-{% endif %}   
- 
-
-{% if params.pcnmef %}
-    {% assign modalEntityFormsArray = params.pcnmef | split: '_' %}
-
-    {%fetchxml ModalEntityFormsMetadataFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_entityformmetadata">
-            <attribute name="adx_entityform" />
-            <attribute name="adx_attributelogicalname" />
-            <attribute name="adx_tabname" />
-            <attribute name="adx_sectionname" />
-            <attribute name="adx_subgrid_name" />
-            <attribute name="adx_type" />
-            <link-entity name="adx_entityform" from="adx_entityformid" to="adx_entityform" link-type="inner" alias="efalias">
+        {%fetchxml ModalEntityFormsFetch%}
+        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+            <entity name="adx_entityform">
                 <attribute name="adx_entityformid" />
                 <attribute name="adx_name" />
                 <attribute name="mal_filteredsource" />
@@ -298,461 +339,446 @@
                 {% for entityFormId in modalEntityFormsArray %}
                     <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
                 {% endfor %}
-                </filter>
-            </link-entity>
-        </entity>
-    </fetch>
-    {%endfetchxml%}
-
-    {%fetchxml ModalEntityFormsFetch%}
-    <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-        <entity name="adx_entityform">
-            <attribute name="adx_entityformid" />
-            <attribute name="adx_name" />
-            <attribute name="mal_filteredsource" />
-            <filter type="or">
-            {% for entityFormId in modalEntityFormsArray %}
-                <condition attribute="adx_entityformid" operator="eq" value="{{entityFormId}}" />
-            {% endfor %}
-            </filter>       
-        </entity>
-    </fetch>
-    {%endfetchxml%}      
-
-    {% assign modalEntiyFormMetadataResults = ModalEntityFormsMetadataFetch.results.entities %}
-    {% assign modalEntityFormsResults = ModalEntityFormsFetch.results.entities %}
-
-{% endif %}  
-
-{% if MainWebTemplateFetch.results.entities.size > 0 %}
-    {% if params.pcnel and params.pcnel != "null" %} 
-        {%fetchxml EntityListsFetch%}
-        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-            <entity name="adx_entitylist">
-                <attribute name="adx_name" />
-                <filter type="and">
-                    <condition attribute="adx_entitylistid" operator="eq" value="{{params.pcnel}}" />
-                </filter>
+                </filter>       
             </entity>
         </fetch>
+        {%endfetchxml%}      
+
+        {% assign modalEntiyFormMetadataResults = ModalEntityFormsMetadataFetch.results.entities %}
+        {% assign modalEntityFormsResults = ModalEntityFormsFetch.results.entities %}
+
+    {% endif %}  
+
+    {% if MainWebTemplateFetch.results.entities.size > 0 %}
+        {% if params.pcnel and params.pcnel != "null" %} 
+            {%fetchxml EntityListsFetch%}
+            <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+                <entity name="adx_entitylist">
+                    <attribute name="adx_name" />
+                    <filter type="and">
+                        <condition attribute="adx_entitylistid" operator="eq" value="{{params.pcnel}}" />
+                    </filter>
+                </entity>
+            </fetch>
+            {%endfetchxml%}
+
+            {% assign entityListsResults = EntityListsFetch.results.entities %}
+        {% endif %}  
+    {% elsif mainWebPage['elalias.adx_entitylistid'] %}
+        {%fetchxml EntityListsFetch%}
+            <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
+                <entity name="adx_entitylist">
+                    <attribute name="adx_name" />
+                    <filter type="and">
+                        <condition attribute="adx_entitylistid" operator="eq" value="{{mainWebPage['elalias.adx_entitylistid']}}" />
+                    </filter>
+                </entity>
+            </fetch>
         {%endfetchxml%}
 
         {% assign entityListsResults = EntityListsFetch.results.entities %}
-    {% endif %}  
-{% elsif mainWebPage['elalias.adx_entitylistid'] %}
-    {%fetchxml EntityListsFetch%}
-        <fetch version="1.0" output-format="xml-platform" mapping="logical" distinct="false">
-            <entity name="adx_entitylist">
-                <attribute name="adx_name" />
-                <filter type="and">
-                    <condition attribute="adx_entitylistid" operator="eq" value="{{mainWebPage['elalias.adx_entitylistid']}}" />
-                </filter>
-            </entity>
-        </fetch>
-    {%endfetchxml%}
-
-    {% assign entityListsResults = EntityListsFetch.results.entities %}
-{% endif %}
-
-
-{% if params.pcnmef or params.pcnef or params.pcnmef or params.pcnwf %}    
-    {% if params.pcnmef %}
-        {% assign allMetadata = allMetadata | concat: modalEntiyFormMetadataResults %}
     {% endif %}
-    {% if params.pcnef %}
-        {% assign allMetadata = allMetadata | concat: entiyFormMetadataResults %}
-    {% endif %}
-    {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
-        {% assign allMetadata = allMetadata | concat: webFormStepsMetadata %}
-    {% endif %}
-{% endif %}
 
 
-{
-    {% if webTemplatesWithBlocksResults.size > 0 %}
-        "webTemplatesWithBlocks":[
-            {% for currentWebTemplate in webTemplatesWithBlocksResults %}
+    {% if params.pcnmef or params.pcnef or params.pcnmef or params.pcnwf %}    
+        {% if params.pcnmef %}
+            {% assign allMetadata = allMetadata | concat: modalEntiyFormMetadataResults %}
+        {% endif %}
+        {% if params.pcnef %}
+            {% assign allMetadata = allMetadata | concat: entiyFormMetadataResults %}
+        {% endif %}
+        {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
+            {% assign allMetadata = allMetadata | concat: webFormStepsMetadata %}
+        {% endif %}
+    {% endif %}
+
+
+    {
+        {% if webTemplatesWithBlocksResults.size > 0 %}
+            "webTemplatesWithBlocks":[
+                {% for currentWebTemplate in webTemplatesWithBlocksResults %}
+                    {
+                        "text": "{{currentWebTemplate.adx_name}}", 
+                        "id": "{{currentWebTemplate.id}}", 
+                        "componentType": "wt", 
+                        "state": {"expanded": true}, 
+                        "nodes": [], 
+                        "backColor": "white",
+                        "hasParent": false, 
+                        "ancestors": [],
+                        "tags": ["Extended Web Template"],
+                        "href": "{{environmentURL}}&etn=adx_webtemplate&id={{currentWebTemplate.id}}", 
+                        "color": "purple", 
+                        "source": "{{currentWebTemplate.mal_filteredsource}}"
+                    } {% if forloop.rindex0 > 0 %},{% endif %}
+                {% endfor %}
+            ],
+        {% endif %}        
+        {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
+            "webForms": [
                 {
-                    "text": "{{currentWebTemplate.adx_name}}", 
-                    "id": "{{currentWebTemplate.id}}", 
-                    "componentType": "wt", 
+                    "text":"{{webForm.adx_name}}", 
+                    "id":"{{webForm.id}}", 
+                    "componentType":"wf", 
                     "state": {"expanded": true}, 
-                    "nodes": [], 
-                    "backColor": "white",
+                    "nodes":[
+                        {% for currentWebFormStep in webFormSteps %}
+                            {
+                                {% assign isStartStep = "no" %}
+                                {% assign tagName = "Web Form Step" %}
+                                {% if request.params.pcnwfstepid == currentWebFormStep.id %}
+                                    {% assign stepColor = "lavender" %}
+                                    {% assign stepName = currentWebFormStep.adx_name" %}
+                                    {% assign tagName = "Current Web Form Step" %}
+                                {% elsif request.params.pcnwfstepid and request.params.pcnwfstepid != currentWebFormStep.id%}
+                                    {% assign stepColor = "white" %}
+                                    {% assign stepName = currentWebFormStep.adx_name %}
+                                {% endif %}
+                                {% if webForm.adx_startstep.id == currentWebFormStep.id %}
+                                    {% assign isStartStep = "yes" %}
+                                {% endif %}
+
+                                {% if request.params.pcnwf and request.params.pcnwfstepid == "null" %}
+                                    {% if webForm.adx_startstep.id == currentWebFormStep.id %}
+                                        {% assign isStartStep = "yes" %}
+                                        {% assign stepColor = "lavender" %}
+                                        {% assign stepName = currentWebFormStep.adx_name" %}
+                                        {% assign tagName = "Current Web Form Step" %}
+                                    {% else %}
+                                        {% assign stepColor = "white" %}
+                                        {% assign stepName = currentWebFormStep.adx_name" %}    
+                                    {% endif %}
+                                {% endif %}
+
+                                {% if mainWebPage['wfalias.adx_webformid'] and request.params.pcnwfstepid == "null" %}
+                                    {% if webForm.adx_startstep.id == currentWebFormStep.id %}
+                                        {% assign isStartStep = "yes" %}
+                                        {% assign stepColor = "lavender" %}
+                                        {% assign stepName = currentWebFormStep.adx_name" %}
+                                        {% assign tagName = "Current Web Form Step" %}
+                                    {% else %}
+                                        {% assign stepColor = "white" %}
+                                        {% assign stepName = currentWebFormStep.adx_name" %}    
+                                    {% endif %}
+                                {% endif %}
+
+                                "text":"{{stepName}}", 
+                                "id":"{{currentWebFormStep.id}}", 
+                                "order":100,
+                                "componentType":"wfs", 
+                                "color":"green", 
+                                "backColor": "{{stepColor}}", 
+                                "webForm":"{{webForm.id}}", 
+                                "nextStep": "{{currentWebFormStep.adx_nextstep.id}}", 
+                                "isStartStep": {% if isStartStep == "yes"%}true{% else %}false{%endif%},
+                                "state": {"expanded": true}, 
+                                {% if webFormStepsMetadata.size > 0 %}
+                                    "nodes":[{
+                                        "text": "Metadata", 
+                                        "state": {"expanded": false}, 
+                                        "nodes":[
+                                            {% assign fileteredwebFormStepsMetadata = webFormStepsMetadata | where: 'adx_webformstep.id', currentWebFormStep.id %}
+                                            {% for currentWebFormStepMetadata in fileteredwebFormStepsMetadata %}
+                                                {% assign currentWebFormStepMetadataName = "" %}
+                                                {% case currentWebFormStepMetadata.adx_type.label %}
+                                                    {% when 'Subgrid' %}
+                                                        {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_subgrid_name %}
+                                                    {% when 'Section' %}
+                                                        {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_sectionname %}
+                                                    {% when 'Tab' %}
+                                                        {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_tabname %}
+                                                    {% when 'Attribute' %}
+                                                        {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_attributelogicalname %}
+                                                {% endcase %}
+                                                {
+                                                    "text":"{{currentWebFormStepMetadataName}}", 
+                                                    "id":"{{currentWebFormStepMetadata.id}}", 
+                                                    "componentType":"wfm", 
+                                                    "state": {"expanded": true}, 
+                                                    "nodes":[], 
+                                                    "hasParent": false, 
+                                                    "ancestors": [],
+                                                    "tags": ["{{currentWebFormStepMetadata.adx_type.label}} Metadata"],
+                                                    "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentWebFormStepMetadata.id}}", 
+                                                    "color":"green"
+                                                }
+                                                {% if forloop.rindex0 > 0 %},{% endif %}
+                                            {% endfor %}
+                                        ]
+                                    }], 
+                                {% else %}
+                                    "nodes":[],
+                                {% endif %}    
+                                "hasParent":false, 
+                                "ancestors": [],
+                                "tags": ["{{tagName}}"],
+                                "href": "{{environmentURL}}&etn=adx_webformstep&id={{currentWebFormStep.id}}", 
+                                "source":"{{currentWebFormStep.mal_filteredsource}}"
+                            }
+                            {% if forloop.rindex0 > 0 %},{% endif %}
+                        {% endfor %}
+                    ], 
                     "hasParent": false, 
                     "ancestors": [],
-                    "tags": ["Extended Web Template"],
-                    "href": "{{environmentURL}}&etn=adx_webtemplate&id={{currentWebTemplate.id}}", 
-                    "color": "purple", 
-                    "source": "{{currentWebTemplate.mal_filteredsource}}"
-                } {% if forloop.rindex0 > 0 %},{% endif %}
-            {% endfor %}
-        ],
-    {% endif %}        
-    {% if params.pcnwf or mainWebPage['wfalias.adx_webformid'] %}
-        "webForms": [
-            {
-                "text":"{{webForm.adx_name}}", 
-                "id":"{{webForm.id}}", 
-                "componentType":"wf", 
-                "state": {"expanded": true}, 
-                "nodes":[
-                    {% for currentWebFormStep in webFormSteps %}
-                        {
-                            {% assign isStartStep = "no" %}
-                            {% assign tagName = "Web Form Step" %}
-                            {% if request.params.pcnwfstepid == currentWebFormStep.id %}
-                                {% assign stepColor = "lavender" %}
-                                {% assign stepName = currentWebFormStep.adx_name" %}
-                                {% assign tagName = "Current Web Form Step" %}
-                            {% elsif request.params.pcnwfstepid and request.params.pcnwfstepid != currentWebFormStep.id%}
-                                {% assign stepColor = "white" %}
-                                {% assign stepName = currentWebFormStep.adx_name %}
-                            {% endif %}
-                            {% if webForm.adx_startstep.id == currentWebFormStep.id %}
-                                {% assign isStartStep = "yes" %}
-                            {% endif %}
-
-                            {% if request.params.pcnwf and request.params.pcnwfstepid == "null" %}
-                                {% if webForm.adx_startstep.id == currentWebFormStep.id %}
-                                    {% assign isStartStep = "yes" %}
-                                    {% assign stepColor = "lavender" %}
-                                    {% assign stepName = currentWebFormStep.adx_name" %}
-                                    {% assign tagName = "Current Web Form Step" %}
-                                {% else %}
-                                    {% assign stepColor = "white" %}
-                                    {% assign stepName = currentWebFormStep.adx_name" %}    
-                                {% endif %}
-                            {% endif %}
-
-                            {% if mainWebPage['wfalias.adx_webformid'] and request.params.pcnwfstepid == "null" %}
-                                {% if webForm.adx_startstep.id == currentWebFormStep.id %}
-                                    {% assign isStartStep = "yes" %}
-                                    {% assign stepColor = "lavender" %}
-                                    {% assign stepName = currentWebFormStep.adx_name" %}
-                                    {% assign tagName = "Current Web Form Step" %}
-                                {% else %}
-                                    {% assign stepColor = "white" %}
-                                    {% assign stepName = currentWebFormStep.adx_name" %}    
-                                {% endif %}
-                            {% endif %}
-
-                            "text":"{{stepName}}", 
-                            "id":"{{currentWebFormStep.id}}", 
-                            "order":100,
-                            "componentType":"wfs", 
-                            "color":"green", 
-                            "backColor": "{{stepColor}}", 
-                            "webForm":"{{webForm.id}}", 
-                            "nextStep": "{{currentWebFormStep.adx_nextstep.id}}", 
-                            "isStartStep": {% if isStartStep == "yes"%}true{% else %}false{%endif%},
-                            "state": {"expanded": true}, 
-                            {% if webFormStepsMetadata.size > 0 %}
-                                "nodes":[{
-                                    "text": "Metadata", 
-                                    "state": {"expanded": false}, 
-                                    "nodes":[
-                                        {% assign fileteredwebFormStepsMetadata = webFormStepsMetadata | where: 'adx_webformstep.id', currentWebFormStep.id %}
-                                        {% for currentWebFormStepMetadata in fileteredwebFormStepsMetadata %}
-                                            {% assign currentWebFormStepMetadataName = "" %}
-                                            {% case currentWebFormStepMetadata.adx_type.label %}
-                                                {% when 'Subgrid' %}
-                                                    {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_subgrid_name %}
-                                                {% when 'Section' %}
-                                                    {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_sectionname %}
-                                                {% when 'Tab' %}
-                                                    {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_tabname %}
-                                                {% when 'Attribute' %}
-                                                    {% assign currentWebFormStepMetadataName = currentWebFormStepMetadata.adx_attributelogicalname %}
-                                            {% endcase %}
-                                            {
-                                                "text":"{{currentWebFormStepMetadataName}}", 
-                                                "id":"{{currentWebFormStepMetadata.id}}", 
-                                                "componentType":"wfm", 
-                                                "state": {"expanded": true}, 
-                                                "nodes":[], 
-                                                "hasParent": false, 
-                                                "ancestors": [],
-                                                "tags": ["{{currentWebFormStepMetadata.adx_type.label}} Metadata"],
-                                                "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentWebFormStepMetadata.id}}", 
-                                                "color":"green"
-                                            }
-                                            {% if forloop.rindex0 > 0 %},{% endif %}
-                                        {% endfor %}
-                                    ]
-                                }], 
-                            {% else %}
-                                "nodes":[],
-                            {% endif %}    
-                            "hasParent":false, 
-                            "ancestors": [],
-                            "tags": ["{{tagName}}"],
-                            "href": "{{environmentURL}}&etn=adx_webformstep&id={{currentWebFormStep.id}}", 
-                            "source":"{{currentWebFormStep.mal_filteredsource}}"
-                        }
-                        {% if forloop.rindex0 > 0 %},{% endif %}
-                    {% endfor %}
-                ], 
+                    "tags": ["Web Form"],
+                    "href": "{{environmentURL}}&etn=adx_webform&id={{webForm.id}}", 
+                    "color":"green", 
+                    "source":""
+                }
+            ],
+        {% endif %}
+        {% if params.pcnef %}
+            "regularEntityForms": [
+                {% for currentEntityForm in entityFormsResults %}
+                    {% assign entityFormMetadata = entiyFormMetadataResults | where: 'adx_entityform.id', currentEntityForm.id %}
+                    {
+                        "text":"{{currentEntityForm.adx_name}}", 
+                        "id":"{{currentEntityForm.id}}", 
+                        "componentType":"ef", 
+                        "state": {"expanded": true}, 
+                        "isModal": "false",
+                        {% if entityFormMetadata.size > 0 %}
+                            "nodes":[{
+                                "text": "Metadata", 
+                                "state": {"expanded": false}, 
+                                "nodes":[
+                                    {% for currentEntityFormMetadata in entityFormMetadata %}
+                                        {% assign currentEntityFormMetadataName = "" %}
+                                        {% case currentEntityFormMetadata.adx_type.label %}
+                                        {% when 'Subgrid' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_subgrid_name %}
+                                        {% when 'Section' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_sectionname %}
+                                        {% when 'Tab' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_tabname %}
+                                        {% when 'Attribute' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_attributelogicalname %}
+                                        {% endcase %}
+                                        {
+                                            "text": "{{currentEntityFormMetadataName}}", 
+                                            "id": "{{currentEntityFormMetadata.id}}", 
+                                            "componentType":"efm", 
+                                            "state": {"expanded": true}, 
+                                            "nodes":[], 
+                                            "hasParent": false, 
+                                            "ancestors": [],
+                                            "tags": ["{{currentEntityFormMetadata.adx_type.label}} Metadata"],
+                                            "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentEntityFormMetadata.id}}", 
+                                            "color":"green"
+                                        }
+                                        {% if forloop.rindex0 > 0 %},{% endif %}
+                                    {% endfor %}
+                                ]
+                            }], 
+                        {% else %}
+                            "nodes":[],
+                        {% endif %} 
+                        "hasParent": false, 
+                        "ancestors": [],
+                        "tags": ["Entity Form"],
+                        "href": "{{environmentURL}}&etn=adx_entityform&id={{currentEntityForm.id}}", 
+                        "color":"green", 
+                        "source":"{{currentEntityForm.mal_filteredsource}}"
+                    }
+                    {% if forloop.rindex0 > 0 %},{% endif %}
+                {% endfor %}
+            ],
+        {% endif %}
+        {% if params.pcnmef %}
+            "modalEntityForms": [
+                {% for currentEntityForm in modalEntityFormsResults %}
+                    {% assign entityFormMetadata = modalEntiyFormMetadataResults | where: 'adx_entityform.id', currentEntityForm.id %}
+                    {
+                        "text":"{{currentEntityForm.adx_name}}", 
+                        "id":"{{currentEntityForm.id}}", 
+                        "componentType":"ef", 
+                        "state": {"expanded": true}, 
+                        "isModal": "true",
+                        {% if entityFormMetadata.size > 0 %}
+                            "nodes":[{
+                                "text": "Metadata", 
+                                "state": {"expanded": false}, 
+                                "nodes":[
+                                    {% for currentEntityFormMetadata in entityFormMetadata %}
+                                        {% assign currentEntityFormMetadataName = "" %}
+                                        {% case currentEntityFormMetadata.adx_type.label %}
+                                        {% when 'Subgrid' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_subgrid_name %}
+                                        {% when 'Section' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_sectionname %}
+                                        {% when 'Tab' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_tabname %}
+                                        {% when 'Attribute' %}
+                                            {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_attributelogicalname %}
+                                        {% endcase %}
+                                        {
+                                            "text": "{{currentEntityFormMetadataName}}", 
+                                            "id": "{{currentEntityFormMetadata.id}}", 
+                                            "componentType":"efm", 
+                                            "state": {"expanded": true}, 
+                                            "nodes":[], 
+                                            "hasParent": false, 
+                                            "ancestors": [],
+                                            "tags": ["{{currentEntityFormMetadata.adx_type.label}} Metadata"],
+                                            "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentEntityFormMetadata.id}}", 
+                                            "color":"green"
+                                        }
+                                        {% if forloop.rindex0 > 0 %},{% endif %}
+                                    {% endfor %}
+                                ]
+                            }], 
+                        {% else %}
+                            "nodes":[],
+                        {% endif %}
+                        "hasParent": false, 
+                        "ancestors": [],
+                        "tags": ["Modal Entity Form"],
+                        "href": "{{environmentURL}}&etn=adx_entityform&id={{currentEntityForm.id}}", 
+                        "color":"green", 
+                        "source":"{{currentEntityForm.mal_filteredsource}}"
+                    }
+                    {% if forloop.rindex0 > 0 %},{% endif %}
+                {% endfor %}
+            ],
+        {% endif %}   
+        {% if params.pcnel and params.pcnel != "null" %} 
+            "entityLists": [
+                {% for entityList in entityListsResults %}
+                    {
+                        "text": "{{entityList.adx_name}}", 
+                        "id": "{{entityList.id}}", 
+                        "componentType": "el", 
+                        "state": {"expanded": true}, 
+                        "nodes": [], 
+                        "backColor": "white",
+                        "hasParent": false, 
+                        "ancestors": [],
+                        "tags": ["Entity List"],
+                        "href": "{{environmentURL}}&etn=adx_entitylist&id={{entityList.id}}", 
+                        "color": "green", 
+                        "source": ""
+                    }
+                {% endfor %}
+            ],
+        {% endif %}     
+        {% if headerWebTemplate %}
+            "headerWebTemplate": {
+                "text": "{{headerWebTemplate.adx_name}}", 
+                "id": "{{headerWebTemplate.id}}", 
+                "componentType": "wt", 
+                "state": {"expanded": false}, 
+                "nodes": [], 
+                "backColor": "lightgray",
                 "hasParent": false, 
                 "ancestors": [],
-                "tags": ["Web Form"],
-                "href": "{{environmentURL}}&etn=adx_webform&id={{webForm.id}}", 
-                "color":"green", 
-                "source":""
-            }
-        ],
-    {% endif %}
-    {% if params.pcnef %}
-        "regularEntityForms": [
-            {% for currentEntityForm in entityFormsResults %}
-                {% assign entityFormMetadata = entiyFormMetadataResults | where: 'adx_entityform.id', currentEntityForm.id %}
+                "tags": ["Header Web Template"],
+                "href": "{{environmentURL}}&etn=adx_webtemplate&id={{headerWebTemplate.id}}", 
+                "color": "black", 
+                "source": "{{headerWebTemplate.mal_filteredsource}}"
+            },
+        {% endif %}
+        {% if footerWebTemplate %}
+            "footerWebTemplate": {
+                "text": "{{footerWebTemplate.adx_name}}", 
+                "id": "{{footerWebTemplate.id}}", 
+                "componentType": "wt", 
+                "state": {"expanded": false}, 
+                "nodes": [], 
+                "backColor": "lightgray",
+                "hasParent": false, 
+                "ancestors": [],
+                "tags": ["Footer Web Template"],
+                "href": "{{environmentURL}}&etn=adx_webtemplate&id={{footerWebTemplate.id}}", 
+                "color": "black", 
+                "source": "{{footerWebTemplate.mal_filteredsource}}"
+            },
+        {% endif %}
+        {% if webTemplatesResults.size > 0 %}
+            "webTemplates":[
+                {% for currentWebTemplate in webTemplatesResults %}
+                    {
+                        "text": "{{currentWebTemplate.adx_name}}", 
+                        "id": "{{currentWebTemplate.id}}", 
+                        "componentType": "wt", 
+                        "state": {"expanded": true}, 
+                        "nodes": [], 
+                        "backColor": "white",
+                        "hasParent": false, 
+                        "ancestors": [],
+                        "tags": ["Web Template"],
+                        "href": "{{environmentURL}}&etn=adx_webtemplate&id={{currentWebTemplate.id}}", 
+                        "color": "purple", 
+                        "source": "{{currentWebTemplate.mal_filteredsource}}"
+                    } {% if forloop.rindex0 > 0 %},{% endif %}
+                {% endfor %}
+            ],
+        {% endif %}   
+        {% if MainWebTemplateFetch.results.entities.size > 0 %}
+            "mainWebTemplate": {
+                "text": "{{mainWebTemplate.adx_name}}", 
+                "id": "{{mainWebTemplate.id}}", 
+                "componentType": "wt", 
+                "state": {"expanded": true}, 
+                "nodes": [], 
+                "backColor": "white",
+                "hasParent": false, 
+                "ancestors": [],
+                "tags": ["Main Web Template"],
+                "href": "{{environmentURL}}&etn=adx_webtemplate&id={{mainWebTemplate.id}}", 
+                "color": "purple", 
+                "source": "{{mainWebTemplate.mal_filteredsource}}"
+            },
+        {% else %}
+            "mainWebTemplate": {
+                "text": "{{mainWebPage['ptalias.adx_name']}}", 
+                "id": "{{mainWebPage.adx_pagetemplateid.id}}", 
+                "componentType": "pt", 
+                "state": {"expanded": true}, 
+                "nodes": [], 
+                "backColor": "white",
+                "hasParent": false, 
+                "ancestors": [],
+                "tags": ["Rewrite Page Template"],
+                "href": "{{environmentURL}}&etn=adx_pagetemplate&id={{mainWebPage.adx_pagetemplateid.id}}", 
+                "color": "purple", 
+                "source": ""
+            },
+        {% endif %}
+        "mainWebPage": {
+            "text": "{{mainWebPage.adx_name}}", 
+            "id": "{{mainWebPage.id}}", 
+            "componentType": "wp", 
+            "state": {"expanded": true},         
+            "nodes": [],         
+            "backColor": "lightgray",
+            "hasParent": false, 
+            "ancestors": [],
+            "tags": ["Web Page"],
+            "href": "{{environmentURL}}&etn=adx_webpage&id={{mainWebPage.id}}", 
+            "color": "black", 
+            "source": "{{mainWebPage.mal_filteredsource}}"
+        }
+        {% if allMetadata %}
+        ,
+        "allMetadata" : [
+            {% for currentMetadata in allMetadata %}
+                {% assign currentMetadataName = currentMetadata.adx_attributelogicalname %}
                 {
-                    "text":"{{currentEntityForm.adx_name}}", 
-                    "id":"{{currentEntityForm.id}}", 
-                    "componentType":"ef", 
-                    "state": {"expanded": true}, 
-                    "isModal": "false",
-                    {% if entityFormMetadata.size > 0 %}
-                        "nodes":[{
-                            "text": "Metadata", 
-                            "state": {"expanded": false}, 
-                            "nodes":[
-                                {% for currentEntityFormMetadata in entityFormMetadata %}
-                                    {% assign currentEntityFormMetadataName = "" %}
-                                    {% case currentEntityFormMetadata.adx_type.label %}
-                                    {% when 'Subgrid' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_subgrid_name %}
-                                    {% when 'Section' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_sectionname %}
-                                    {% when 'Tab' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_tabname %}
-                                    {% when 'Attribute' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_attributelogicalname %}
-                                    {% endcase %}
-                                    {
-                                        "text": "{{currentEntityFormMetadataName}}", 
-                                        "id": "{{currentEntityFormMetadata.id}}", 
-                                        "componentType":"efm", 
-                                        "state": {"expanded": true}, 
-                                        "nodes":[], 
-                                        "hasParent": false, 
-                                        "ancestors": [],
-                                        "tags": ["{{currentEntityFormMetadata.adx_type.label}} Metadata"],
-                                        "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentEntityFormMetadata.id}}", 
-                                        "color":"green"
-                                    }
-                                    {% if forloop.rindex0 > 0 %},{% endif %}
-                                {% endfor %}
-                            ]
-                        }], 
+                    "text": "{{currentMetadataName}}", 
+                    "id": "{{currentMetadata.id}}", 
+                    {% if currentMetadata.adx_webformstep %}
+                        "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentMetadata.id}}", 
+                        "parentType":"wfs",
+                        "parentId": "{{currentMetadata['ac.adx_webformid']}}"
                     {% else %}
-                        "nodes":[],
-                    {% endif %} 
-                    "hasParent": false, 
-                    "ancestors": [],
-                    "tags": ["Entity Form"],
-                    "href": "{{environmentURL}}&etn=adx_entityform&id={{currentEntityForm.id}}", 
-                    "color":"green", 
-                    "source":"{{currentEntityForm.mal_filteredsource}}"
-                }
-                {% if forloop.rindex0 > 0 %},{% endif %}
-            {% endfor %}
-        ],
-    {% endif %}
-    {% if params.pcnmef %}
-        "modalEntityForms": [
-            {% for currentEntityForm in modalEntityFormsResults %}
-                {% assign entityFormMetadata = modalEntiyFormMetadataResults | where: 'adx_entityform.id', currentEntityForm.id %}
-                {
-                    "text":"{{currentEntityForm.adx_name}}", 
-                    "id":"{{currentEntityForm.id}}", 
-                    "componentType":"ef", 
-                    "state": {"expanded": true}, 
-                    "isModal": "true",
-                    {% if entityFormMetadata.size > 0 %}
-                        "nodes":[{
-                            "text": "Metadata", 
-                            "state": {"expanded": false}, 
-                            "nodes":[
-                                {% for currentEntityFormMetadata in entityFormMetadata %}
-                                    {% assign currentEntityFormMetadataName = "" %}
-                                    {% case currentEntityFormMetadata.adx_type.label %}
-                                    {% when 'Subgrid' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_subgrid_name %}
-                                    {% when 'Section' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_sectionname %}
-                                    {% when 'Tab' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_tabname %}
-                                    {% when 'Attribute' %}
-                                        {% assign currentEntityFormMetadataName = currentEntityFormMetadata.adx_attributelogicalname %}
-                                    {% endcase %}
-                                    {
-                                        "text": "{{currentEntityFormMetadataName}}", 
-                                        "id": "{{currentEntityFormMetadata.id}}", 
-                                        "componentType":"efm", 
-                                        "state": {"expanded": true}, 
-                                        "nodes":[], 
-                                        "hasParent": false, 
-                                        "ancestors": [],
-                                        "tags": ["{{currentEntityFormMetadata.adx_type.label}} Metadata"],
-                                        "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentEntityFormMetadata.id}}", 
-                                        "color":"green"
-                                    }
-                                    {% if forloop.rindex0 > 0 %},{% endif %}
-                                {% endfor %}
-                            ]
-                        }], 
-                    {% else %}
-                        "nodes":[],
+                        "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentMetadata.id}}", 
+                        "parentType":"ef",
+                        "parentId": "{{currentMetadata.adx_entityform.id}}"
                     {% endif %}
-                    "hasParent": false, 
-                    "ancestors": [],
-                    "tags": ["Modal Entity Form"],
-                    "href": "{{environmentURL}}&etn=adx_entityform&id={{currentEntityForm.id}}", 
-                    "color":"green", 
-                    "source":"{{currentEntityForm.mal_filteredsource}}"
                 }
                 {% if forloop.rindex0 > 0 %},{% endif %}
             {% endfor %}
-        ],
-    {% endif %}   
-    {% if params.pcnel and params.pcnel != "null" %} 
-        "entityLists": [
-            {% for entityList in entityListsResults %}
-                {
-                    "text": "{{entityList.adx_name}}", 
-                    "id": "{{entityList.id}}", 
-                    "componentType": "el", 
-                    "state": {"expanded": true}, 
-                    "nodes": [], 
-                    "backColor": "white",
-                    "hasParent": false, 
-                    "ancestors": [],
-                    "tags": ["Entity List"],
-                    "href": "{{environmentURL}}&etn=adx_entitylist&id={{entityList.id}}", 
-                    "color": "green", 
-                    "source": ""
-                }
-            {% endfor %}
-        ],
-    {% endif %}     
-    {% if headerWebTemplate %}
-        "headerWebTemplate": {
-            "text": "{{headerWebTemplate.adx_name}}", 
-            "id": "{{headerWebTemplate.id}}", 
-            "componentType": "wt", 
-            "state": {"expanded": false}, 
-            "nodes": [], 
-            "backColor": "lightgray",
-            "hasParent": false, 
-            "ancestors": [],
-            "tags": ["Header Web Template"],
-            "href": "{{environmentURL}}&etn=adx_webtemplate&id={{headerWebTemplate.id}}", 
-            "color": "black", 
-            "source": "{{headerWebTemplate.mal_filteredsource}}"
-        },
-    {% endif %}
-    {% if footerWebTemplate %}
-        "footerWebTemplate": {
-            "text": "{{footerWebTemplate.adx_name}}", 
-            "id": "{{footerWebTemplate.id}}", 
-            "componentType": "wt", 
-            "state": {"expanded": false}, 
-            "nodes": [], 
-            "backColor": "lightgray",
-            "hasParent": false, 
-            "ancestors": [],
-            "tags": ["Footer Web Template"],
-            "href": "{{environmentURL}}&etn=adx_webtemplate&id={{footerWebTemplate.id}}", 
-            "color": "black", 
-            "source": "{{footerWebTemplate.mal_filteredsource}}"
-        },
-    {% endif %}
-    {% if webTemplatesResults.size > 0 %}
-        "webTemplates":[
-            {% for currentWebTemplate in webTemplatesResults %}
-                {
-                    "text": "{{currentWebTemplate.adx_name}}", 
-                    "id": "{{currentWebTemplate.id}}", 
-                    "componentType": "wt", 
-                    "state": {"expanded": true}, 
-                    "nodes": [], 
-                    "backColor": "white",
-                    "hasParent": false, 
-                    "ancestors": [],
-                    "tags": ["Web Template"],
-                    "href": "{{environmentURL}}&etn=adx_webtemplate&id={{currentWebTemplate.id}}", 
-                    "color": "purple", 
-                    "source": "{{currentWebTemplate.mal_filteredsource}}"
-                } {% if forloop.rindex0 > 0 %},{% endif %}
-            {% endfor %}
-        ],
-    {% endif %}   
-    {% if MainWebTemplateFetch.results.entities.size > 0 %}
-        "mainWebTemplate": {
-            "text": "{{mainWebTemplate.adx_name}}", 
-            "id": "{{mainWebTemplate.id}}", 
-            "componentType": "wt", 
-            "state": {"expanded": true}, 
-            "nodes": [], 
-            "backColor": "white",
-            "hasParent": false, 
-            "ancestors": [],
-            "tags": ["Main Web Template"],
-            "href": "{{environmentURL}}&etn=adx_webtemplate&id={{mainWebTemplate.id}}", 
-            "color": "purple", 
-            "source": "{{mainWebTemplate.mal_filteredsource}}"
-        },
-    {% else %}
-        "mainWebTemplate": {
-            "text": "{{mainWebPage['ptalias.adx_name']}}", 
-            "id": "{{mainWebPage.adx_pagetemplateid.id}}", 
-            "componentType": "pt", 
-            "state": {"expanded": true}, 
-            "nodes": [], 
-            "backColor": "white",
-            "hasParent": false, 
-            "ancestors": [],
-            "tags": ["Rewrite Page Template"],
-            "href": "{{environmentURL}}&etn=adx_pagetemplate&id={{mainWebPage.adx_pagetemplateid.id}}", 
-            "color": "purple", 
-            "source": ""
-        },
-    {% endif %}
-    "mainWebPage": {
-        "text": "{{mainWebPage.adx_name}}", 
-        "id": "{{mainWebPage.id}}", 
-        "componentType": "wp", 
-        "state": {"expanded": true},         
-        "nodes": [],         
-        "backColor": "lightgray",
-        "hasParent": false, 
-        "ancestors": [],
-        "tags": ["Web Page"],
-        "href": "{{environmentURL}}&etn=adx_webpage&id={{mainWebPage.id}}", 
-        "color": "black", 
-        "source": "{{mainWebPage.mal_filteredsource}}"
+        ]
+        {% endif %}
     }
-    {% if allMetadata %}
-    ,
-    "allMetadata" : [
-        {% for currentMetadata in allMetadata %}
-            {% assign currentMetadataName = currentMetadata.adx_attributelogicalname %}
-            {
-                "text": "{{currentMetadataName}}", 
-                "id": "{{currentMetadata.id}}", 
-                {% if currentMetadata.adx_webformstep %}
-                    "href": "{{environmentURL}}&etn=adx_webformmetadata&id={{currentMetadata.id}}", 
-                    "parentType":"wfs",
-                    "parentId": "{{currentMetadata['ac.adx_webformid']}}"
-                {% else %}
-                    "href": "{{environmentURL}}&etn=adx_entityformmetadata&id={{currentMetadata.id}}", 
-                    "parentType":"ef",
-                    "parentId": "{{currentMetadata.adx_entityform.id}}"
-                {% endif %}
-            }
-            {% if forloop.rindex0 > 0 %},{% endif %}
-        {% endfor %}
-    ]
-    {% endif %}
-}
+{% endif %}
