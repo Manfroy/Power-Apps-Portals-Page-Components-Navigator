@@ -13,7 +13,7 @@ https://github.com/jonmiles/bootstrap-treeview
 
 ### Setup
 
-[Download](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/releases/download/v1.1.0.0/PageComponentsNavigator_1_1_0_0_managed.zip) the Page Components Navigator solution and install it.
+[Download](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator/releases/download/v2.0.0.0/PageComponentsNavigator_2_0_0_0_managed.zip) the Page Components Navigator solution and install it.
 
 Once the solution is installed, navigate to the portal's website record for which you want to set up the Page Components Navigator and click on the "Enable PCN" button from the ribbon. Doing this will result on some [data modifications](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-modifications) and some [data additions](https://github.com/Manfroy/Power-Apps-Portals-Page-Components-Navigator#data-additions) so please read what those modifications are before enabling the functionality on the website.
 
